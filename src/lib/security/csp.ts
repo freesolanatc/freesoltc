@@ -13,15 +13,23 @@ const ANALYTICS_CONNECT_HOSTS = [
   "https://plausible.io",
 ];
 
-/** Builds a per-request CSP header string. Explicitly allow-lists the configured RPC + analytics hosts. */
-export function buildCspHeader(nonce: string): string {
+/**
+ * Builds the CSP header string. Deliberately has no per-request nonce: Next.js only stamps a
+ * nonce onto its own inline hydration/RSC scripts when that nonce is threaded through
+ * `headers()` in application code, which this app never does. Without that, a nonce that
+ * changes every request just breaks on any cached response (the HTML — including inline
+ * script tags — is cached with an old nonce baked in, while the CSP response header for a
+ * later cache hit carries a freshly-generated one), silently killing hydration on every cache
+ * HIT. Using a static allow-list instead keeps full-route caching working.
+ */
+export function buildCspHeader(): string {
   const rpcHosts = getRpcHostnames().map((h) => `https://${h}`);
   const explorerHost = "https://explorer.solana.com";
   const irysHosts = ["https://uploader.irys.xyz", "https://gateway.irys.xyz", "https://node1.irys.xyz", "https://devnet.irys.xyz"];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...ANALYTICS_SCRIPT_HOSTS],
+    "script-src": ["'self'", "'unsafe-inline'", ...ANALYTICS_SCRIPT_HOSTS],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "https:"],
     "font-src": ["'self'", "data:"],

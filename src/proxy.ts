@@ -6,15 +6,10 @@ import { buildCspHeader } from "@/lib/security/csp";
  * Next.js 16 renamed middleware.ts -> proxy.ts. Proxy always runs on the Node.js runtime
  * (no Edge option here), which is fine for header injection.
  */
-export function proxy(request: NextRequest) {
-  const nonce = crypto.randomUUID().replace(/-/g, "");
-  const csp = buildCspHeader(nonce);
+export function proxy(_request: NextRequest) {
+  const csp = buildCspHeader();
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nonce", nonce);
-  requestHeaders.set("Content-Security-Policy", csp);
-
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next();
 
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Content-Type-Options", "nosniff");
