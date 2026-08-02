@@ -9,7 +9,7 @@ import { verifyOnChainTask } from "@/lib/points/verifyOnChainTask";
 import { getConnection } from "@/lib/solana/connection";
 import { rateLimitPointsClaim } from "@/lib/security/rateLimit";
 import { solanaAddressSchema } from "@/lib/security/validation";
-import { siteConfig } from "@/lib/site-config";
+import { isAllowedOrigin } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -28,16 +28,6 @@ const bodySchema = z.object({
   signature: z.string().trim().min(32).max(200),
   txSignature: z.string().trim().min(32).max(128).optional(),
 });
-
-function isAllowedOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  try {
-    return new URL(origin).host === new URL(siteConfig.url).host;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const db = getDb();

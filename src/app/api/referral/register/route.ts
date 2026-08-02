@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { referrals } from "@/lib/db/schema";
 import { rateLimitReferralRegister } from "@/lib/security/rateLimit";
 import { solanaAddressSchema } from "@/lib/security/validation";
-import { siteConfig } from "@/lib/site-config";
+import { isAllowedOrigin } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
 
@@ -12,16 +12,6 @@ const bodySchema = z.object({
   wallet: solanaAddressSchema,
   referrer: solanaAddressSchema,
 });
-
-function isAllowedOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  try {
-    return new URL(origin).host === new URL(siteConfig.url).host;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   const db = getDb();

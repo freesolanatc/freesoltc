@@ -3,18 +3,9 @@ import { contactFormSchema } from "@/lib/security/validation";
 import { rateLimitContact } from "@/lib/security/rateLimit";
 import { serverEnv } from "@/lib/env";
 import { siteConfig } from "@/lib/site-config";
+import { isAllowedOrigin } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
-
-function isAllowedOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  try {
-    return new URL(origin).host === new URL(siteConfig.url).host;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   if (!isAllowedOrigin(request)) {

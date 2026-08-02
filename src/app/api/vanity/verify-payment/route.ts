@@ -4,19 +4,9 @@ import { verifyVanityPayment } from "@/lib/payment/verifyVanityPayment";
 import { issueVanityPaymentToken } from "@/lib/payment/verificationToken";
 import { claimPaymentSignature, rateLimitVerifyPayment } from "@/lib/security/rateLimit";
 import { verifyPaymentRequestSchema } from "@/lib/security/validation";
-import { siteConfig } from "@/lib/site-config";
+import { isAllowedOrigin } from "@/lib/security/origin";
 
 export const runtime = "nodejs";
-
-function isAllowedOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return true; // same-origin requests from some clients omit Origin
-  try {
-    return new URL(origin).host === new URL(siteConfig.url).host;
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(request: NextRequest) {
   if (!isAllowedOrigin(request)) {
