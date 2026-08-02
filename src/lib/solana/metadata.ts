@@ -35,14 +35,36 @@ export async function uploadTokenMetadata({
     siteConfig.cluster === "mainnet-beta" ? irysUploaderBuilder.mainnet() : irysUploaderBuilder.devnet();
   const irys = await irysUploader;
 
-  const imageReceipt = await irys.uploadFile(image);
-  const imageUri = `https://gateway.irys.xyz/${imageReceipt.id}`;
-
+  // Irys tracks a prepaid balance per wallet on its own node, separate from the wallet's SOL
+  // balance — uploads fail with "Not enough balance for transaction" until that node balance is
+  // topped up. We never funded it, so every upload past Irys's small free tier failed
+  // regardless of how much SOL the wallet actually held. Estimate the combined cost up front and
+  // top up (a real, wallet-approved SOL transfer to Irys) before uploading anything.
   const properties: Record<string, string> = {};
   if (social.website) properties.website = social.website;
   if (social.twitter) properties.twitter = social.twitter;
   if (social.telegram) properties.telegram = social.telegram;
   if (social.discord) properties.discord = social.discord;
+
+  const metadataJsonForSizing = JSON.stringify({
+    name,
+    symbol,
+    description,
+    image: `https://gateway.irys.xyz/${"x".repeat(43)}`,
+    properties,
+  });
+  const estimatedTotalBytes = image.size + new TextEncoder().encode(metadataJsonForSizing).length;
+
+  const [price, balance] = await Promise.all([
+    irys.getPrice(estimatedTotalBytes),
+    irys.getBalance(),
+  ]);
+  if (balance.lt(price)) {
+    await irys.fund(price.minus(balance), 1.1);
+  }
+
+  const imageReceipt = await irys.uploadFile(image);
+  const imageUri = `https://gateway.irys.xyz/${imageReceipt.id}`;
 
   const metadataJson = {
     name,
