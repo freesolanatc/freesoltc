@@ -1,0 +1,121 @@
+---
+title: "What Is Freeze Authority on Solana and Why You Should Revoke It"
+slug: "revoke-freeze-authority-guide"
+metaDescription: "Learn what freeze authority means for an SPL token, how it can be used to lock holder wallets, and how to revoke freeze authority free with a single on-chain transaction."
+date: "2026-07-12"
+tags: ["Security", "Guides"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "What does freeze authority actually let someone do?"
+    answer: "Freeze authority lets the holder of that permission freeze any individual holder's token account for a specific mint. Once frozen, that account cannot send, receive, or otherwise interact with the token until it's thawed by the same authority. It affects one holder's account at a time, not the whole token supply."
+  - question: "Is freeze authority the same as mint authority?"
+    answer: "No. They are separate fields on the mint account and control different things. Mint authority governs the ability to create new supply. Freeze authority governs the ability to lock individual holders out of their token accounts. A token can have one revoked and not the other."
+  - question: "Why would a legitimate project ever want freeze authority?"
+    answer: "Freeze authority has real, legitimate uses in regulated or permissioned contexts, such as stablecoins that must comply with sanctions lists or securities-like tokens that require issuer-level control over transfers. For most permissionless community tokens and memecoins, though, there's no legitimate use case that justifies keeping it active."
+  - question: "Can freeze authority be used to freeze my wallet even if I never approved anything malicious?"
+    answer: "Yes. Freeze authority doesn't require any action or approval from the token holder. Whoever holds the authority key can freeze any holder's associated token account unilaterally, at any time, for any reason, unless that authority has been revoked."
+  - question: "How do I check if a token's freeze authority has been revoked?"
+    answer: "Look up the token's mint address on a Solana block explorer and check the freezeAuthority field in the parsed account data. If it displays as null or none, freeze authority has been permanently revoked and can never be reinstated for that mint."
+  - question: "Does revoking freeze authority cost anything on this platform?"
+    answer: "No platform fee applies. Revoking freeze authority free means you only pay Solana's standard network transaction fee, typically a fraction of a cent, with no additional charge from the tool itself."
+---
+
+Mint authority tends to get most of the attention when people talk about Solana token risk, but freeze authority deserves equal scrutiny — and arguably causes more direct, personal harm when misused, because it can lock an individual holder out of their own funds without warning. This guide covers exactly what freeze authority does, how it differs from mint authority, and how to revoke it for free.
+
+## What freeze authority controls
+
+Every SPL token mint account has two optional authority fields defined at creation: mint authority and freeze authority. While mint authority governs the token's total supply, freeze authority governs something more granular — the ability to freeze or thaw an individual **token account**.
+
+A token account is not the same thing as a wallet. Each wallet holds a separate associated token account for every SPL token it interacts with, and freeze authority operates at that account level. If a project's freeze authority freezes your specific token account for their mint, your tokens are still technically yours — you still hold them — but you cannot transfer, sell, stake, or otherwise move them until that same authority thaws the account. Your SOL and every other token you hold are unaffected; only the frozen mint's token account is locked.
+
+This is a deliberate protocol feature, not a bug or an exploit path. The SPL Token program simply enforces that only the designated freeze authority key can invoke the `FreezeAccount` and `ThawAccount` instructions for a given mint. Everything else about the design — who holds that key, and how they choose to use it — is left entirely up to the token creator.
+
+For the fuller picture of how freeze authority fits alongside the rest of the mint account's fields, see our companion article on [what mint authority is and why it matters](/blog/revoke-mint-authority-explained), or start from first principles with our [introduction to the SPL Token standard](/blog/what-is-spl-token).
+
+## Why unrevoked freeze authority is a serious risk
+
+Consider what freeze authority means from a holder's perspective: at any point, without warning, without your consent, and without any wrongdoing on your part, the entity holding freeze authority over a token you own can prevent you from moving it. There is no requirement that the freeze be justified, disclosed in advance, or reversible on any particular timeline.
+
+In practice, this gets abused in a specific and cruel pattern. A project builds hype, sells a large allocation to retail buyers, and once the token starts trading, the team uses freeze authority to lock buyers' accounts selectively — often waiting until price rises, then freezing bagholders' wallets while continuing to trade freely themselves, or freezing accounts en masse right before a coordinated sell-off so no one else can exit. Because freezing is a standard, permitted program instruction, there's no dramatic "hack" for anyone to notice ahead of time; it just happens, silently, to whichever accounts the authority targets.
+
+This is one of the two central mechanisms (alongside unrevoked mint authority) behind most Solana rug pulls. We cover the combined pattern in detail in [how mint and freeze authority are used in rug pulls](/blog/rug-pull-prevention-mint-freeze-authority), including how the two authorities are sometimes used together for maximum effect — inflating supply and immobilizing sellers at the same time.
+
+<Callout>Freeze authority doesn't need to be used to be dangerous. Its mere existence means every holder is trusting the token creator not to use a capability that requires no holder consent whatsoever. Revocation converts that trust into an unenforceable-by-anyone-else, cryptographically closed door.</Callout>
+
+## What revocation actually changes on-chain
+
+Revoking freeze authority means submitting a `SetAuthority` instruction against the mint account, targeting the `FreezeAccount` authority type and setting the new value to `None`. Once this transaction confirms:
+
+- No account can ever be frozen or thawed for that mint again, by anyone, under any circumstances.
+- Any account that was already frozen before revocation remains frozen — revoking freeze authority does not automatically thaw existing frozen accounts. If accounts need to be thawed, that must happen *before* revocation, since the authority is required to issue the thaw instruction.
+- Mint authority is entirely unaffected; it's a separate field that must be revoked independently if desired, as covered in our [mint authority guide](/blog/revoke-mint-authority-explained).
+- No other property of the token (name, symbol, supply, decimals) changes.
+
+Like mint authority revocation, this is genuinely irreversible. There's no governance override, no key recovery mechanism, and no future upgrade path that restores freeze authority once it's set to `None` — the protocol itself enforces the closure.
+
+## How to revoke freeze authority for free
+
+The process mirrors mint authority revocation closely. On the [revoke freeze authority](/revoke-freeze-authority) page:
+
+1. Connect the wallet currently holding freeze authority over the token — only that exact key can perform the revocation.
+2. Enter the mint address of the token in question.
+3. Review the current authority status the tool reads directly from on-chain data.
+4. Approve the revocation transaction.
+
+No platform fee applies to this action. You revoke freeze authority free, paying only Solana's standard network transaction fee. If you're launching a new token, you can bundle this into the same session as [creating the token](/create-token) and revoking mint authority, so the token never exists publicly with either authority still active — assuming that's the configuration you want.
+
+<Callout>Before revoking, double-check whether any accounts are currently frozen (including any of your own team or treasury accounts used for testing). If they are, thaw them first — once freeze authority is revoked, there is no way to thaw any account, ever.</Callout>
+
+## Legitimate reasons to keep freeze authority active
+
+Not every token should revoke freeze authority immediately, and it's worth being fair about the cases where it serves a real purpose:
+
+**Regulated stablecoins and securities-like tokens.** Issuers operating under legal obligations — such as sanctions compliance, KYC/AML enforcement, or securities regulations — sometimes have a legitimate, disclosed need to freeze specific accounts under specific, auditable circumstances. This is standard practice for several major stablecoins across multiple chains, not unique to Solana.
+
+**Fraud response mechanisms.** Some permissioned or enterprise token designs retain freeze capability as an emergency response tool against detected exploits or compromised accounts, generally governed by a transparent policy and often a multisig rather than a single wallet.
+
+**Pre-launch testing.** Teams sometimes keep freeze authority active briefly during a controlled testing or presale phase to prevent premature trading, with a clear, published commitment to revoke before public trading opens.
+
+Outside of these narrow, disclosed cases, there's very little upside for a general-purpose community token or memecoin to retain freeze authority, and considerable downside in how it's perceived by anyone doing due diligence.
+
+## How to check freeze authority status yourself
+
+As with mint authority, you don't need to take a project's word for it. Paste the mint address into a Solana block explorer and check the `freezeAuthority` field in the parsed mint data. It will show either a specific public key (active) or display as revoked/null. This check takes seconds and is one of the highest-value items in a broader pre-purchase review — see our [Solana token security checklist](/blog/solana-token-security-checklist) for the complete list of on-chain facts worth verifying, including liquidity lock status, holder concentration, and metadata mutability, alongside both authority fields.
+
+It's also worth checking whether any accounts are *currently* frozen, not just whether the authority is theoretically active. A block explorer will typically flag a token account's state (initialized, frozen) directly, which tells you whether the authority has already been exercised, not just whether it exists.
+
+## Freeze authority and the wider launch process
+
+If you're working through the full sequence of [creating a Solana token](/create-token), freeze authority is a decision that sits alongside — but independent from — mint authority, decimals, and supply. A sensible default sequence for most public token launches looks like:
+
+1. Finalize name, symbol, decimals, and supply.
+2. Mint the token, attach metadata, and distribute the initial supply as planned.
+3. Confirm no accounts need to remain freezable for your specific use case.
+4. Revoke freeze authority, either together with or separately from mint authority.
+5. Verify both authority fields on a block explorer before any public announcement.
+
+Because both revocations are free beyond the standard network fee, there's rarely a financial reason to delay. The only reason to hold off is genuine, ongoing operational need — and if that's the case, it's worth communicating clearly to your community exactly why, and under what conditions revocation will eventually happen.
+
+## Freeze authority versus other ways holders lose access
+
+It's worth distinguishing freeze authority from other, unrelated ways a holder might lose access to their tokens, since they're sometimes conflated in casual discussion. Losing a wallet's private key, sending tokens to an incorrect address, or falling for a phishing transaction that transfers tokens away are all real risks — but none of them involve freeze authority at all. Those are user-side failures or scams operating through transaction approval, not a protocol-level lock imposed by the token issuer.
+
+Freeze authority is distinct because it doesn't require the holder to make any mistake, approve anything, or sign anything at all. The holder can follow every best practice — cold storage, careful transaction review, hardware wallet signing — and still find their tokens frozen, because the freeze instruction is signed entirely by the authority key, not by the holder. This is precisely why it's worth checking independently on-chain rather than assuming that "being careful" is sufficient protection against it. No amount of personal security hygiene protects you from a freeze authority that remains active and unrevoked on a token you hold.
+
+## Freeze authority in multisig or program-controlled setups
+
+As with mint authority, freeze authority doesn't have to be held by a single wallet. Some legitimate, disclosed use cases assign it to a multisig requiring several approvals before any account can be frozen, or to a program-controlled account operating under fixed, auditable rules — for instance, an automated compliance system that only freezes accounts flagged by a specific, transparent on-chain condition. These structures reduce (though don't eliminate) the risk of freeze authority being misused unilaterally, since they require coordination or deterministic logic rather than a single signer's discretion.
+
+If a project discloses that freeze authority remains active and points to a multisig or program address as the holder, that's meaningfully more reassuring than an unexplained single wallet holding the same power — but it's still worth verifying independently. Multisig signer lists and program logic are both publicly checkable on-chain, so there's no need to take a project's description of its own safeguards at face value when the underlying facts are verifiable directly.
+
+## Comparing freeze authority to controls on other chains
+
+Token holders coming from other ecosystems sometimes assume every chain has some equivalent of freeze authority, but the details vary considerably. On Ethereum, whether a token contract *can* freeze holder balances depends entirely on that specific contract's custom code — some tokens include blocklist or pausable functionality, many don't, and there's no universal, standardized field to check the way there is on Solana. You'd need to read the contract source (or trust an audit) to know whether freeze-like functionality even exists for a given ERC-20 token.
+
+On Solana, freeze authority is a single, structured field present on every mint account using the standard SPL Token program, checkable identically for any token using a block explorer. There's no custom code to review and no ambiguity about whether the capability exists — only about whether it's still active. This structural consistency is one of the practical advantages of Solana's shared-program token model, discussed further in our comparison of [SPL tokens and Ethereum's ERC-20 standard](/blog/solana-token-vs-erc20).
+
+## The bottom line
+
+Freeze authority is a narrow, specific power: the ability to lock one holder's token account at a time, without their consent or any required justification. For regulated, permissioned tokens it can serve a real compliance purpose. For the vast majority of permissionless community tokens, it's a liability with no offsetting benefit, and one of the clearest single facts a prospective holder can check before committing funds.
+
+Revoking it costs nothing beyond the standard Solana network fee, takes one signed transaction, and — like mint authority — converts an indefinite trust assumption into a permanent, protocol-enforced fact. If you're building a token meant to earn holders' confidence, revoking freeze authority alongside mint authority is one of the simplest, highest-leverage things you can do. Head to the [revoke freeze authority](/revoke-freeze-authority) tool when you're ready, or check the [FAQ](/faq) for more on how this fits into the overall token creation and authority management process.

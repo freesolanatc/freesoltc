@@ -1,0 +1,116 @@
+---
+title: "What Is Mint Authority on Solana? A Complete Guide to Revoking It for Free"
+slug: "revoke-mint-authority-explained"
+metaDescription: "Understand what mint authority means for a Solana SPL token, why unrevoked authority is a major risk signal, and how to revoke mint authority free using an on-chain, one-click transaction."
+date: "2026-07-09"
+tags: ["Security", "Guides"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "What exactly is mint authority on a Solana token?"
+    answer: "Mint authority is a field stored directly on an SPL token's mint account that names the single address permitted to create new units of that token. As long as an address holds mint authority, it can call the mint instruction and increase the token's total supply at any time, without needing permission from holders."
+  - question: "Why would a token even have mint authority in the first place?"
+    answer: "Mint authority isn't inherently malicious. Some legitimate designs need it temporarily, such as tokens with staged distribution schedules, reward-emission tokens, or wrapped-asset representations that mint new supply as the underlying asset is deposited. The risk isn't holding mint authority, it's holding it indefinitely with no transparency about how it will be used."
+  - question: "Is revoking mint authority the same as burning tokens?"
+    answer: "No, these are different actions. Burning destroys existing tokens and reduces circulating supply. Revoking mint authority does not touch any existing tokens at all — it only removes the ability to create new ones in the future, locking the current supply as a permanent ceiling."
+  - question: "Can I revoke mint authority after my token has already been trading for a while?"
+    answer: "Yes. Mint authority can be revoked at any point after creation, whether that's immediately or months later, as long as the wallet holding the authority signs the revocation transaction. There's no deadline, though revoking early generally builds more trust than revoking late."
+  - question: "How can holders verify that mint authority was actually revoked?"
+    answer: "Anyone can look up the token's mint address on a Solana block explorer and check the mint authority field directly. If it shows as None or null, revocation is confirmed on-chain. This is publicly verifiable and doesn't rely on trusting the project's word."
+  - question: "Does revoking mint authority cost money?"
+    answer: "The revocation instruction itself carries no platform fee on this tool — you only pay Solana's standard network transaction fee, which is typically a small fraction of a cent. There is no separate charge for revoking mint authority free through the dedicated tool."
+---
+
+Of all the questions a prospective holder should ask before touching a new Solana token, "has mint authority been revoked?" is arguably the single most important one. It's a simple yes-or-no check that can be verified independently on-chain in seconds, and it tells you something concrete about how much power the creator retains over your holdings. This article explains exactly what mint authority is, why it matters so much, and how to revoke it for free.
+
+## The mechanics of mint authority
+
+Every SPL token on Solana is represented by a **mint account** — a piece of on-chain state managed by the SPL Token program (or Token-2022). This account stores several fields, including the token's total supply, its number of decimal places, and two authority fields: **mint authority** and **freeze authority**.
+
+Mint authority is simply the public key of whichever account is permitted to invoke the `MintTo` instruction against that mint. If your wallet holds mint authority over a token, you (and only you, or anyone who gains control of that wallet) can call an instruction that creates brand-new units of the token and deposits them into any token account you choose. There's no cap enforced by the protocol beyond the maximum value of a 64-bit integer — mint authority can, in principle, be used to increase supply by orders of magnitude in a single transaction.
+
+This is a deliberate and useful piece of design. It's what makes staged token distributions, yield-bearing reward tokens, and mintable wrapped assets possible. The SPL Token program doesn't try to guess whether ongoing minting is legitimate or not — it simply enforces that only the authority key can do it. The judgment about whether that's appropriate is left entirely to the humans evaluating the token.
+
+If you want the broader context of how mint authority fits into the SPL Token standard as a whole, our [introduction to what an SPL token is](/blog/what-is-spl-token) covers the full account model, including how mint accounts relate to token accounts and associated token accounts.
+
+## Why unrevoked mint authority is a risk
+
+Picture two tokens with identical marketing, identical roadmaps, and identical initial supply. Token A has revoked mint authority. Token B has not. From a holder's perspective, these are fundamentally different assets, because Token B's total supply is not actually fixed — it's a promise. The team behind Token B is asking holders to trust that they simply won't use a capability they retain, indefinitely, with no on-chain mechanism forcing them to keep that promise.
+
+That trust gap gets exploited constantly. A classic pattern: a project launches, builds up a liquidity pool and community trust, then quietly mints a huge new batch of supply and dumps it into the pool, extracting value from every existing holder in one move. Because minting is a normal, permitted SPL Token program operation — not a bug or an exploit — there's no way to reverse it after the fact. It happened because the authority was never revoked, not because of some clever hack.
+
+This is exactly the mechanism we cover in more depth in our piece on [how mint and freeze authority are used in rug pulls](/blog/rug-pull-prevention-mint-freeze-authority). The short version: supply dilution through unrevoked mint authority is one of the two or three most common rug pull vectors on Solana, precisely because it requires no technical sophistication beyond simply not revoking a default setting.
+
+<Callout>An unrevoked mint authority doesn't prove bad intent — plenty of legitimate tokens keep it temporarily for staged emissions. But it does mean holders are trusting a promise instead of verifying a fact. Revoking removes that ambiguity entirely.</Callout>
+
+## What revocation actually does on-chain
+
+Revoking mint authority means submitting a `SetAuthority` instruction against the mint account, specifying the `MintTokens` authority type and setting the new authority to `None`. This is a standard, well-documented instruction in the SPL Token program — nothing proprietary or unusual about it.
+
+Once that transaction confirms, the mint account's authority field is permanently cleared. There is no key, no multisig, no governance vote, and no future transaction that can set it back. The only way a mint could ever mint again would be for the protocol itself to change, which isn't something any individual token or team controls. This is genuinely, cryptographically permanent — not "permanent until someone finds a workaround."
+
+It's worth being precise about what revocation does *not* do:
+
+- It does not affect any tokens that already exist. Circulating and unclaimed supply remain exactly as they were at the moment of revocation.
+- It does not affect freeze authority, which is a separate field controlled independently. A token can have mint authority revoked while freeze authority remains active, or vice versa — see our companion guide on [revoking freeze authority](/blog/revoke-freeze-authority-guide) for that half of the picture.
+- It does not burn or lock any tokens. If you want to reduce supply, that requires a separate burn instruction entirely.
+- It does not change decimals, name, symbol, or any other mint metadata.
+
+## How to revoke mint authority for free
+
+Using a dedicated tool removes the need to construct the `SetAuthority` instruction by hand. On the [revoke mint authority](/revoke-mint-authority) page, the flow is:
+
+1. Connect the wallet that currently holds mint authority over the token. This must be the exact authority key — no other wallet can perform the revocation, by design.
+2. Enter or select the mint address of the token you want to revoke authority on.
+3. Confirm the current authority status shown by the tool, which reads directly from the mint account on-chain.
+4. Approve the revocation transaction in your wallet.
+
+That's it. There's no platform fee charged for this action — you can revoke mint authority free, paying only the standard Solana network transaction fee, which is typically a fraction of a cent. If you're creating a brand-new token, you can also handle this immediately as part of the [token creation flow](/create-token), so there's no window where a freshly minted token sits with active, unrevoked authority.
+
+<Callout>Only the wallet holding the current mint authority can revoke it. If authority was assigned to a different address (for example, a team multisig or a separate deployer wallet), you'll need to connect that specific wallet, not just any wallet associated with the project.</Callout>
+
+## When it makes sense to keep mint authority active
+
+Revoking isn't universally correct for every token. Some legitimate structures genuinely need ongoing mint capability:
+
+**Staged or vesting emissions.** Reward tokens, liquidity mining tokens, or play-to-earn game tokens sometimes mint new supply on a predictable schedule tied to specific milestones. In these cases, the mint authority is often held by a program-controlled account (a PDA) rather than a human-controlled wallet, so minting follows deterministic, auditable rules rather than arbitrary discretion.
+
+**Wrapped or bridged assets.** A token representing a deposited asset from another chain typically needs to mint new units whenever a new deposit is confirmed, and burn units when assets are withdrawn. Revoking mint authority here would break the wrapping mechanism entirely.
+
+**Pre-launch flexibility.** Some teams intentionally delay revocation until after a presale or initial distribution phase completes, so they can correct minor allocation errors before locking supply permanently. This is reasonable as long as it's communicated clearly and the delay is short and transparent.
+
+In every one of these cases, the distinguishing factor is transparency: is it clear to holders *why* mint authority is still active, *who* controls it, and *what conditions* govern its use? If the answer is "no one has explained this," that's the same risk profile as a token that simply forgot — or chose not — to revoke.
+
+## Verifying revocation independently
+
+You don't need to trust a project's claim that mint authority was revoked — you can check it yourself in under a minute. Paste the token's mint address into any Solana block explorer (Solscan, Solana Explorer, or similar) and look at the account's parsed data. The `mintAuthority` field will show either a public key (still active) or `null` / show as revoked (confirmed gone).
+
+This is one of the most valuable habits any Solana holder can build, and it costs nothing but a few seconds. It's also one of the first checks worth including in a broader pre-investment routine — our [Solana token security checklist](/blog/solana-token-security-checklist) walks through the full set of on-chain facts worth verifying before you commit funds to any new token, mint authority being just one line item among many, alongside freeze authority, liquidity lock status, and holder concentration.
+
+## Mint authority in the context of the whole token lifecycle
+
+It helps to think about mint authority as one decision among several you make when you [create a Solana token](/create-token), not an isolated afterthought. The full sequence for a typical public launch looks like:
+
+1. Decide name, symbol, decimals, and total supply (see our guide on [choosing decimals and supply](/blog/solana-token-decimals-supply-guide) if you haven't finalized these).
+2. Mint the token and attach metadata.
+3. Distribute or reserve the initial supply as planned.
+4. Revoke mint authority once supply is finalized and no further minting is needed.
+5. Decide separately on freeze authority.
+6. Optionally, verify everything on a block explorer before announcing publicly.
+
+Doing steps 4 and 5 together, right after step 3, is the cleanest pattern for most projects, because it eliminates any period where the token exists in a partially-trustworthy state. There's rarely a good reason to wait, given that revocation costs nothing beyond the network fee and can't be undone accidentally by mistake — it requires a deliberate, explicit transaction.
+
+## Mint authority held by a multisig or program
+
+Not every mint authority is a single wallet controlled by one person. Some projects assign mint authority to a multisig account, requiring several designated signers to approve any minting action, or to a program-derived address (PDA) governed entirely by deterministic on-chain logic rather than human discretion. These setups are meaningfully different from a lone hot wallet holding unilateral minting power, and they're worth distinguishing when you evaluate a token.
+
+A multisig doesn't eliminate the risk that comes with active mint authority, but it does reduce it, since it requires collusion among multiple parties rather than a single compromised key or a single bad actor. A program-controlled PDA can go further still, enforcing hard rules (a fixed emission schedule, a maximum cap, a time lock) that no individual signer can override even if they wanted to. If a project tells you mint authority is still active but "safe" because of one of these structures, it's reasonable to ask for the specific multisig signer list or the program's source code, rather than taking the claim at face value — both are independently verifiable on-chain, unlike a plain promise.
+
+## A note on how this compares to other chains
+
+Holders coming from Ethereum sometimes assume mint authority works like an ERC-20 contract's owner-only `mint()` function, which is a reasonable intuition, but the mechanisms differ in an important way. On Ethereum, whether a token can be minted further, and by whom, is buried in that token's specific contract code — you'd need to read (or have someone read) the actual Solidity source to know for sure, and even then, upgradeable proxy contracts can sometimes change that logic after the fact. On Solana, mint authority is a plain, structured field on every mint account, using identical program logic across every SPL token in existence. There's no custom code to audit and no proxy pattern to worry about — just one field, in one standard location, checkable the same way for any token you ever encounter. This uniformity is one of the more underrated benefits of Solana's shared-program token model, and it's covered in more depth in our comparison of [SPL tokens versus ERC-20 tokens](/blog/solana-token-vs-erc20).
+
+## The bottom line
+
+Mint authority is a normal, useful piece of the SPL Token program's design — not a flaw. But its power is exactly why it deserves scrutiny on every token you evaluate, and why revoking it (when appropriate) is one of the highest-leverage actions a token creator can take to earn trust. It's a single transaction, it's verifiable by anyone in seconds, it costs nothing but the standard network fee, and it converts a promise ("we won't mint more") into a fact enforced by the protocol itself.
+
+If you're launching a token and haven't decided yet, default toward revoking unless you have a specific, explainable reason not to. And if you're evaluating someone else's token, checking mint authority status takes less time than reading their whitepaper — do that first. For the practical steps, head to the [mint authority revocation tool](/revoke-mint-authority), and if you're setting up a brand-new token from scratch, the [FAQ](/faq) covers additional common questions about the whole creation and authority-management process.

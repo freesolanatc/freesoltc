@@ -1,0 +1,114 @@
+---
+title: "What Is an SPL Token? A Beginner's Guide to Solana's Token Standard"
+slug: "what-is-spl-token"
+metaDescription: "A clear beginner's explanation of SPL tokens, Solana's native token standard. Learn how mint accounts, token accounts, and authorities work, and how to create an SPL token free."
+date: "2026-07-03"
+tags: ["Getting Started", "Guides"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "What does SPL stand for?"
+    answer: "SPL stands for Solana Program Library, a collection of on-chain programs maintained for the Solana ecosystem. The Token program within that library defines the standard that essentially all fungible and non-fungible tokens on Solana use, which is why they're commonly called SPL tokens."
+  - question: "Is an SPL token the same thing as a smart contract, like an ERC-20 token?"
+    answer: "Not exactly. An ERC-20 token on Ethereum is its own deployed smart contract with its own code. An SPL token is a data record (a mint account) managed by one shared, pre-existing SPL Token program. No new code is deployed when you create an SPL token — you're initializing state within an existing program."
+  - question: "Do all SPL tokens use the same program?"
+    answer: "Most fungible SPL tokens use the original SPL Token program. A newer version, Token-2022 (also called Token Extensions), adds optional built-in features like transfer fees and confidential transfers while remaining conceptually similar. Both are shared programs used by many independent tokens."
+  - question: "What is the difference between a mint account and a token account?"
+    answer: "A mint account represents the token itself — its supply, decimals, and authorities. A token account represents one holder's balance of that specific token. Every wallet that holds a given SPL token has its own associated token account tied to that mint."
+  - question: "Can I create an SPL token without any coding experience?"
+    answer: "Yes. A token creator tool handles the underlying program instructions for you — you only need to supply values like name, symbol, decimals, and supply, then approve the transaction in your connected wallet."
+  - question: "Is it free to create an SPL token?"
+    answer: "Creating an SPL token requires paying Solana's standard network fees for account creation and transaction processing, which are typically a small fraction of a cent. Using a free SPL token creator tool means you don't pay any additional platform markup on top of that unavoidable network cost."
+---
+
+If you've spent any time around Solana, you've almost certainly seen the term "SPL token" used interchangeably with just "token." That's not accidental — nearly every fungible token on Solana, from stablecoins to memecoins to governance tokens, is an SPL token under the hood. But the term itself, and the architecture behind it, is worth understanding properly rather than treating as a synonym. This guide explains what SPL tokens actually are, how they differ from token standards on other chains, and what's happening under the hood when you create one.
+
+## SPL stands for Solana Program Library
+
+SPL is short for **Solana Program Library** — a set of on-chain programs maintained for the broader Solana ecosystem, covering things like token management, associated token accounts, name services, and more. The piece relevant here is the **Token program**, which defines a standard interface and account structure for representing fungible and non-fungible assets on Solana.
+
+When people say "SPL token," they specifically mean a token whose supply, transfers, and ownership are managed through this Token program (or its newer sibling, Token-2022, which we'll get to). It's a *standard*, not a specific token — much like "ERC-20" on Ethereum describes a pattern that thousands of independent tokens follow, "SPL token" describes a pattern that thousands of independent Solana tokens follow, all built on the same underlying program logic.
+
+## The key architectural difference from Ethereum-style tokens
+
+This is the point that trips up people coming from other chains, so it's worth being explicit about it. On Ethereum, creating a new ERC-20 token typically means writing and deploying a new smart contract — new bytecode, living at its own new address, implementing the token's logic (balances, transfers, approvals) itself. Every ERC-20 token is, in a real sense, running its own program.
+
+Solana's SPL Token program works differently. There is a single, shared, already-deployed program that essentially all fungible tokens use. Creating a new token doesn't deploy any new code — instead, it initializes a new **mint account**, which is just a data record telling that shared program "here is a new token, with this supply, these decimals, and these authorities." All the actual logic — how transfers work, how minting works, how accounts are validated — lives in the one shared program and is identical for every SPL token that uses it.
+
+This has a few practical consequences worth understanding:
+
+**Security auditing is concentrated, not fragmented.** Because thousands of tokens share the same program logic, the SPL Token program has been extensively audited and battle-tested across an enormous volume of transactions. You're not trusting each individual token's custom code — you're trusting one well-scrutinized program, over and over.
+
+**New tokens are cheap and fast to create.** Since no new program deployment is required, creating a token is just a few account-initialization instructions, which is part of why it's realistic to [create a Solana token](/create-token) for a tiny fraction of a cent in network fees, in a matter of seconds.
+
+**Behavior is standardized.** Every SPL token behaves identically at the protocol level — the differences between tokens come down to their configured parameters (supply, decimals, authorities, metadata) rather than custom code paths. This predictability is a major reason wallets, DEXs, and explorers can support any SPL token automatically without needing custom integration work per token.
+
+For a deeper look at how this compares directly against Ethereum's model, including practical differences in fees, account structure, and developer experience, see our dedicated comparison of [Solana SPL tokens vs. Ethereum ERC-20](/blog/solana-token-vs-erc20).
+
+## The core building blocks
+
+To understand an SPL token, it helps to know the handful of account types the Token program relies on.
+
+### Mint account
+
+The mint account is the token's canonical on-chain record. It stores:
+
+- **Supply** — the total number of token units currently in existence (in the token's smallest unit, before applying decimals)
+- **Decimals** — how many decimal places the token supports, discussed further in our guide on [choosing decimals and supply](/blog/solana-token-decimals-supply-guide)
+- **Mint authority** — the address (if any) permitted to create additional supply
+- **Freeze authority** — the address (if any) permitted to freeze individual holders' accounts
+
+Every SPL token has exactly one mint account, identified by its mint address — the string you'd paste into an explorer or a DEX to look up the token.
+
+### Token account
+
+A token account represents one specific holder's balance of one specific token. Critically, a wallet doesn't hold SPL tokens directly the way it holds SOL — it holds them through a separate token account tied to both the wallet's owner address and the specific mint. This is different from Ethereum, where an ERC-20 balance is just an entry in the token contract's internal mapping.
+
+### Associated token account (ATA)
+
+In practice, almost every wallet uses **associated token accounts** — a deterministic, standardized address derived from the owner's wallet address and the mint address. This determinism means any application can compute where a given wallet's balance of a given token *should* live without needing to look it up first, which is why wallets and DEXs can support arbitrary new tokens automatically. If a wallet has never held a particular token before, its associated token account for that mint doesn't exist yet — which is why sending someone a brand-new token for the first time sometimes requires a small extra step (and rent deposit) to create that account.
+
+### Metadata account
+
+Separately from the core Token program, most tokens attach a metadata account following the Metaplex Token Metadata standard, which stores the human-readable name, symbol, and a URI pointing to an off-chain JSON file (typically hosted on Arweave or IPFS) containing the image and description. Technically optional, but functionally essential — without it, wallets and explorers have nothing but a raw mint address to display. We cover this standard in full in our guide on [Solana token metadata](/blog/solana-token-metadata-explained).
+
+<Callout>A token's mint address, its total supply, and its decimals are effectively permanent once set. Its metadata (name, symbol, image) can sometimes be updated later if the metadata account was left mutable — but treat all of these as final decisions at creation time regardless, since changing them post-launch damages trust even when technically possible.</Callout>
+
+## Authorities: the part that matters most for trust
+
+Two fields on the mint account deserve special attention because of how directly they affect holder risk: mint authority and freeze authority.
+
+**Mint authority** is the address permitted to create new supply. As long as it's active, the token's total supply is not truly fixed — it's a promise that can be broken unilaterally at any time by whoever holds that key. We cover this in full in [what mint authority is and why revoking it matters](/blog/revoke-mint-authority-explained).
+
+**Freeze authority** is the address permitted to lock an individual holder's token account, preventing them from transferring their balance. It doesn't affect supply, but it directly affects whether holders can actually use what they own. See our companion piece on [freeze authority](/blog/revoke-freeze-authority-guide) for the full breakdown.
+
+Both authorities can be permanently set to `None` through a `SetAuthority` instruction, and both revocations are supported for free through this platform's dedicated [revoke mint authority](/revoke-mint-authority) and [revoke freeze authority](/revoke-freeze-authority) tools — you only pay the standard Solana network fee, no platform markup. Because these two fields are so central to how trustworthy a token is, understanding them isn't optional context for a token creator — it's core knowledge, covered in depth in our [rug pull prevention guide](/blog/rug-pull-prevention-mint-freeze-authority).
+
+## Token-2022: the newer, extended standard
+
+The original SPL Token program was deliberately kept minimal and stable — it hasn't changed its core logic in years, which is a feature, not a limitation, given how much value flows through it. But that minimalism meant certain features teams wanted (transfer fees collected automatically, transfer restrictions, confidential balances, interest-bearing tokens) had to be built as separate, non-standard wrapper logic outside the program, which fragmented compatibility.
+
+**Token-2022** (sometimes called Token Extensions) is a newer, parallel program that implements the same core token model but adds an extensible system of optional features that can be attached to a mint at creation time. A Token-2022 mint without any extensions enabled behaves just like a classic SPL token; one with extensions enabled can support things like an automatic transfer fee taken on every transaction, or metadata stored directly within the mint account itself rather than a separate Metaplex account.
+
+Because Token-2022 is a different program from the original SPL Token program, wallets, DEXs, and explorers all needed to add explicit support for it — which has happened broadly, but adoption details and edge cases still vary. If you're deciding whether to use classic SPL Token or Token-2022 for a new project, our dedicated guide on [understanding Token-2022 and its extensions](/blog/understanding-token-extensions-token-2022) walks through the tradeoffs in detail.
+
+## How this shows up when you create a token
+
+None of this architecture is something you need to manage manually to launch a token today. A token creator tool constructs the necessary instructions — initializing the mint account with your chosen decimals and authorities, creating your associated token account, minting your initial supply into it, and creating the metadata account — and bundles them so you approve everything in a single wallet signature.
+
+Understanding the underlying model still matters, though, because it explains *why* certain decisions (decimals, supply, authority configuration) are effectively permanent, and *why* checking a mint account's authority fields on a block explorer is a meaningful, trustworthy verification step rather than just a formality. It's also why creating a token doesn't require deploying custom code or paying deployment gas the way it might on other chains — you're using a program that already exists and has already been paid for by the protocol's own infrastructure, which is a large part of why it's realistic to [create an SPL token for free](/create-token) beyond the unavoidable network fee.
+
+## Common misconceptions worth clearing up
+
+**"An SPL token is a smart contract, like on Ethereum."** Not quite — as covered above, an SPL token is a data record managed by a shared program, not its own deployed code. This distinction matters practically: you can't "read the contract" of an SPL token the way you might read an ERC-20's Solidity source, because there isn't one specific to that token. What you *can* and should read is the mint account's own fields — supply, decimals, and both authorities — which tell you everything the shared program logic would otherwise leave ambiguous on other chains.
+
+**"All SPL tokens are the same program, so they're all equally trustworthy."** The shared program being well-audited means the *mechanics* (transfers, minting, freezing) work identically and reliably across every SPL token. It says nothing about whether a *specific* token's configuration — its authority settings, its supply, its distribution — is trustworthy. The program is the plumbing; the configuration is the judgment call, and that judgment call is exactly what checking mint and freeze authority status is meant to inform.
+
+**"Once I create a token, I'm stuck with everything about it forever."** Partially true, and worth being precise about which parts. Decimals and the mint address itself are permanent. Total supply can move (up, if mint authority is active; down, via burning). Metadata like name, symbol, and image can sometimes be updated later, if the metadata account was left mutable at creation — though changing these post-launch is generally discouraged once a community has formed around them.
+
+**"SPL tokens can't have advanced features like transfer fees or interest, unlike newer chains' token standards."** This was true of the original SPL Token program by design, but it's exactly what Token-2022 was built to address, via its optional extension system. It's worth checking which program a given token uses before assuming it's limited to only the classic feature set.
+
+## Putting it together
+
+An SPL token is not a standalone piece of software — it's a configured instance of a shared, audited, standardized program that the entire Solana ecosystem relies on. That shared foundation is what makes SPL tokens fast to create, cheap to transact, and predictable to integrate with across wallets and exchanges. It's also what makes specific configuration choices — decimals, supply, and especially mint and freeze authority — so consequential, since they're not buried in custom contract code but sitting in plain, publicly verifiable fields on the mint account.
+
+If you're ready to put this into practice, the [Solana token creator](/create-token) tool walks you through configuring all of these values directly, and our guide on [choosing decimals and initial supply](/blog/solana-token-decimals-supply-guide) is a good next stop for the two parameters that are hardest to change your mind about later. For anything else, the [FAQ](/faq) covers the most common follow-up questions people have once they understand the SPL Token model.

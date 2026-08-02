@@ -1,0 +1,119 @@
+---
+title: "The Solana Token Security Checklist: 15 Things to Check Before You Launch"
+slug: "solana-token-security-checklist"
+metaDescription: "A 15-point security checklist for launching or evaluating a Solana token, covering mint authority, freeze authority, metadata, liquidity, and wallet safety."
+date: "2026-03-25"
+tags: ["Security", "Guides", "Advanced"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "What's the single most important security check for a Solana token?"
+    answer: "Checking whether mint authority has been revoked is generally considered the most important single check, since an active mint authority means the supply can be inflated at any moment without warning, instantly devaluing every existing holder's tokens. It's the check most experienced traders and screening bots look at first."
+  - question: "Can I check a token's mint and freeze authority myself before buying?"
+    answer: "Yes. Paste the token's mint address into a Solana block explorer such as Solscan or the official Solana Explorer, and look at the mint account details. Both mint authority and freeze authority will show either a wallet address, meaning the authority is still active, or a null value, meaning it has been permanently revoked."
+  - question: "Is a token automatically safe if mint and freeze authority are both revoked?"
+    answer: "No. Revoking both authorities removes two of the most common rug-pull mechanisms, but it doesn't guarantee safety on its own — liquidity can still be unlocked and withdrawn, supply can still be heavily concentrated in a few wallets, and the metadata authority may still be mutable. Treat revoked authorities as one strong signal among several, not a complete guarantee."
+  - question: "How do I check if liquidity is locked for a token?"
+    answer: "Liquidity lock status depends on the specific DEX and lock mechanism used, but generally you can check whether the LP tokens for a pool have been sent to a burn address, deposited into a time-locked vault contract, or are still sitting in a wallet the creator controls. Several third-party Solana analytics tools display this information directly for popular pools."
+  - question: "Should I run this checklist even for a token I'm creating myself, not buying?"
+    answer: "Yes, and it's arguably even more valuable for creators, since running through it before launch catches configuration mistakes while they're still cheap and easy to fix. Publishing proof that you've completed these checks is also one of the strongest trust signals you can offer prospective holders."
+  - question: "Do these checks apply to all Solana tokens, or just memecoins?"
+    answer: "They apply to any SPL token, but they matter most for tokens without institutional backing or long track records, which describes the vast majority of memecoins and early-stage community tokens. Established projects with audited contracts and public teams still benefit from the same checks, just with generally lower risk of the more predatory patterns."
+---
+
+Solana's low fees and fast finality make it trivially easy to create a token — which is exactly why the network has also become a magnet for tokens designed to separate buyers from their money. The technical barrier to launching something that looks legitimate is almost zero, and the gap between "looks legitimate" and "is actually safe" is precisely where most losses happen. The good news is that nearly everything that matters for token safety is verifiable on-chain, in public, by anyone willing to spend a few minutes checking.
+
+This checklist covers fifteen specific things worth verifying before you buy into a Solana token, or before you launch your own and want to prove it's built correctly. Some of these checks take thirty seconds on a block explorer; others require a bit more digging. Together, they form a reasonably complete picture of a token's structural risk — separate from questions of whether the project's idea or community will succeed, which no checklist can answer.
+
+## Authority Checks
+
+### 1. Is Mint Authority Revoked?
+
+Mint authority determines who can create additional tokens beyond the current supply. If it's still active — pointing to a live wallet address rather than showing as null — the holder of that authority can inflate supply at any time, for any amount, with no on-chain restriction stopping them. This is one of the most damaging and most common rug-pull mechanisms, precisely because it can be executed instantly and without warning once triggered.
+
+Check this by pasting the token's mint address into a block explorer and looking at the mint account's authority field. Our [full explanation of mint authority](/blog/revoke-mint-authority-explained) covers exactly what this permission controls and how to verify its status. If you're launching your own token, [revoke mint authority for free](/revoke-mint-authority) as one of your first post-launch actions.
+
+### 2. Is Freeze Authority Revoked?
+
+Freeze authority allows the holder to freeze any individual token account, preventing that holder from transferring or selling their tokens — while leaving every other holder unaffected. It's a more targeted and, in some ways, more insidious tool than mint authority, because it can be used selectively against specific wallets rather than affecting the whole market at once.
+
+Verify this the same way, on the same mint account page, checking the freeze authority field. See our [guide to freeze authority](/blog/revoke-freeze-authority-guide) for more detail, and use the [free freeze authority revocation tool](/revoke-freeze-authority) if you're the one launching the token.
+
+<Callout>Some legitimate, regulated tokens (particularly certain stablecoins) intentionally keep freeze authority active for compliance reasons. Context matters — an active freeze authority on an anonymous memecoin is a very different signal than one on a regulated, disclosed financial product.</Callout>
+
+### 3. Is Update Authority on Metadata Locked or Reasonable?
+
+Beyond mint and freeze authority, check whether the token's [Metaplex metadata](/blog/solana-token-metadata-explained) is mutable and, if so, who controls the update authority. A mutable metadata account under the creator's control means the name, symbol, or image could theoretically be changed post-launch. This is a lower-severity risk than mint or freeze authority — it can't touch funds directly — but it's worth knowing, particularly for tokens marketed heavily on branding and image.
+
+## Supply and Distribution Checks
+
+### 4. How Concentrated Is Token Ownership?
+
+Use a block explorer's holder list to check what percentage of total supply sits in the top handful of wallets, excluding known liquidity pool addresses. Heavy concentration in a small number of non-pool wallets is a red flag — it means a small group can exert outsized influence on price simply by selling, whether or not that's their intent.
+
+### 5. Are Large Holder Wallets Connected to the Deployer?
+
+Some tools let you trace whether top holder wallets received tokens directly from the deployer address shortly after mint, which can reveal disguised insider allocations that weren't disclosed publicly. This takes more digging than most of the other checks here, but it's valuable for larger positions.
+
+### 6. Does the Circulating Supply Match What's Publicly Claimed?
+
+Compare the actual on-chain total supply against whatever number is stated in the project's marketing or documentation. Discrepancies, even small ones, are worth asking about directly — they can be innocent mistakes or a sign of sloppier, less trustworthy management overall.
+
+## Liquidity Checks
+
+### 7. Is There Actually a Liquidity Pool?
+
+A token with no liquidity pool isn't tradable at all — it can only sit in wallets or be transferred peer-to-peer. Confirm a pool exists on a Solana DEX before assuming you can exit a position if you buy in.
+
+### 8. How Deep Is the Liquidity Pool?
+
+Shallow pools mean high slippage — a modest buy or sell can move the price dramatically, which both increases your trading cost and makes the token more vulnerable to manipulation by anyone with even moderate capital. Check the pool's total value before trading any meaningful size.
+
+### 9. Is Liquidity Locked or Burned?
+
+This is arguably as important as mint authority for tokens with an active trading pool. If the LP tokens representing a share of the pool are still held in a wallet the creator controls, that creator can withdraw the underlying liquidity at any time, leaving buyers holding a token with no market to sell into — a classic and extremely common rug-pull pattern. Locked (time-vaulted) or burned LP tokens remove this risk. Several Solana analytics platforms display lock status directly for popular pools; when in doubt, ask the project directly and expect a clear, verifiable answer.
+
+### 10. Who Provided the Initial Liquidity?
+
+Understanding whether liquidity came from the project team, a fair public sale, or some other mechanism gives context for how the token's price was seeded and who has the largest stake in the pool's stability. Our [guide to adding liquidity](/blog/how-to-add-liquidity-solana-token) walks through this process from the creator's side, which is useful context for understanding what to look for as a buyer too.
+
+## Metadata and Presentation Checks
+
+### 11. Does Metadata Display Correctly Across Wallets and Explorers?
+
+Load the token in more than one wallet and at least one explorer. Inconsistent or missing name, symbol, and image display can indicate a rushed or broken setup — not necessarily malicious, but a sign the creator may have cut corners elsewhere too.
+
+### 12. Does the Symbol Collide With an Established Token?
+
+Solana doesn't enforce unique ticker symbols. A token using "BONK," "WIF," or another well-known symbol without being that project is either a mistake or a deliberate attempt to create confusion. Always verify by mint address, never by symbol alone.
+
+## Contract and Program Checks
+
+### 13. Is This a Standard SPL Token or Something Custom?
+
+Most legitimate tokens use the standard SPL Token program (or the newer [Token-2022 program](/blog/understanding-token-extensions-token-2022)) without custom modifications. A token deployed under a custom, unaudited program is a materially different risk profile — custom code can contain arbitrary logic, including hidden transfer restrictions or hidden fees, that a standard SPL token simply cannot have. If you're not equipped to review custom program code, treat unfamiliar custom token programs with significant extra caution.
+
+### 14. Are There Transfer Taxes or Hidden Fees?
+
+Some tokens, particularly those built on Token-2022's transfer fee extension, take a cut on every transfer. This isn't inherently malicious — some legitimate projects use it for sustainable tokenomics — but it needs to be disclosed and understood before you trade, since an undisclosed high transfer tax functions similarly to a hidden exit fee.
+
+## Community and Transparency Checks
+
+### 15. Is the Team Transparent, and Does the Story Hold Up?
+
+The least technical check on this list, but often the most predictive. Does the team communicate clearly and consistently? Do their claims about tokenomics, roadmap, and distribution match what you can independently verify on-chain? Anonymous teams aren't automatically disqualifying on Solana — plenty of legitimate memecoins have pseudonymous creators — but the story they tell should hold up against the checks above rather than contradict them.
+
+## Putting the Checklist Into Practice
+
+Running all fifteen checks takes real time, and for a small position or a token you're just curious about, that may not be proportionate. A reasonable triage approach: always check mint authority, freeze authority, and liquidity lock status first (checks 1, 2, and 9) — these three catch the large majority of outright predatory setups with minimal effort. If those pass, move on to holder concentration and metadata consistency before committing meaningful capital. Save the deeper checks — custom program review, deployer wallet tracing — for larger positions or situations where something already feels off.
+
+<Callout>No checklist, including this one, can tell you whether a token's community, idea, or timing will succeed. These checks address structural and technical risk — whether the token's mechanics can be used against you — not market risk, which is a separate and unavoidable part of holding any volatile asset.</Callout>
+
+## Using This Checklist as a Creator, Not Just a Buyer
+
+If you're launching a token rather than evaluating one, this checklist doubles as a pre-launch audit of your own project. Running through it before you promote your token publicly serves two purposes: it catches configuration mistakes while they're still easy to fix, and it lets you proactively demonstrate — with explorer links, not just claims — that your token passes every check that matters. Projects that publish this kind of evidence upfront consistently earn faster trust than ones that simply assert "we're legit" without backing it up.
+
+The mechanics of getting a token to pass these checks are largely free and don't require technical expertise. You can [create your SPL token](/create-token), [revoke mint authority](/revoke-mint-authority), and [revoke freeze authority](/revoke-freeze-authority) entirely through a web interface, paying only Solana's minimal network fees. Pairing that with properly hosted metadata, transparent distribution, and locked liquidity covers the large majority of this checklist before a single holder has even looked at your token.
+
+For a deeper look at exactly how the two most dangerous items on this list — mint and freeze authority — have historically been exploited, our [breakdown of rug pulls and authority abuse](/blog/rug-pull-prevention-mint-freeze-authority) is worth reading in full. And if you're still deciding between token creation tools for your own launch, our [comparison of Solana token creator platforms](/blog/solana-token-creator-comparison) covers what to look for beyond just the headline "free" claim, including exactly the kind of transparency this checklist demands.
+
+Security on Solana isn't a matter of trusting a brand or a promise — it's a matter of checking a small number of verifiable, on-chain facts. Make that checking a habit, whether you're buying or building, and you'll avoid the overwhelming majority of preventable losses in this ecosystem.

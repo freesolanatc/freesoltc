@@ -1,0 +1,99 @@
+---
+title: "Solana Devnet vs Mainnet: How to Safely Test Your Token Before Launch"
+slug: "solana-devnet-vs-mainnet-testing-tokens"
+metaDescription: "Understand the difference between Solana devnet and mainnet, and learn how to safely test your SPL token — metadata, authorities, and liquidity flows — before spending real SOL."
+date: "2026-02-17"
+tags: ["Getting Started", "Guides", "Security"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "What's the actual difference between devnet and mainnet?"
+    answer: "Mainnet is Solana's real production network where transactions carry actual economic value and SOL has real monetary worth. Devnet is a separate, parallel network run for development and testing purposes, using the exact same protocol and program code, but where SOL is free from a faucet and has no real-world value."
+  - question: "Can I use the same wallet on both devnet and mainnet?"
+    answer: "Yes, the same wallet address and keypair work on both networks since they share the same cryptographic address format — what differs is which network your wallet application is currently pointed at, and the balances and tokens are entirely separate between the two even though the address looks identical."
+  - question: "Is a token I create on devnet the same as one on mainnet?"
+    answer: "No. A devnet token and a mainnet token are completely separate on-chain entities, even if created with identical parameters, because they exist on different networks with independent ledgers. You must create your token again on mainnet when you're ready to launch for real — devnet is purely a rehearsal."
+  - question: "How do I get devnet SOL to test with?"
+    answer: "Devnet SOL is available for free from public faucets, either through a command-line tool, a web-based faucet interface, or directly within some wallet applications that include a built-in devnet faucet request feature. There is no cost and no real value involved in obtaining or using devnet SOL."
+  - question: "Should I test revoking mint and freeze authority on devnet first?"
+    answer: "Yes, especially if it's your first time going through the flow. Because revoking authority is permanent and irreversible, rehearsing the exact steps on devnet first — where mistakes cost nothing — lets you understand precisely what you're approving before you do it for real on mainnet with an actual token."
+  - question: "Why do some tools default to mainnet instead of devnet?"
+    answer: "Because mainnet is where real users, real liquidity, and real value exist, most token creator tools default to mainnet since that's what the overwhelming majority of visitors actually want. If a tool supports devnet testing, it's usually accessible through an explicit network switch, either in the tool's own settings or via your wallet's network selector."
+---
+
+Every experienced Solana builder has a story about a mistake that would have been catastrophic on mainnet but cost nothing because it happened on devnet first. Testing before you commit real funds isn't an optional nicety in crypto — it's one of the few genuine safety nets available in an environment where transactions are irreversible and mistakes involving real SOL or a real token launch can't simply be undone. This guide explains exactly what devnet is, how it differs from mainnet, and how to use it deliberately to rehearse your token creation flow — including the permanent, high-stakes step of revoking mint and freeze authority — before you do any of it for real.
+
+## What Devnet Actually Is
+
+Solana doesn't run a single network — it runs several, and understanding the distinction matters more than most newcomers initially realize. **Mainnet** (more precisely, mainnet-beta) is the production network: the one with real economic value, real users, real liquidity pools, and the one people mean when they talk about "Solana" without qualification. **Devnet** is a separate, persistent network that runs the same underlying protocol and the same deployed programs (including the Token Program and Token-2022) but exists purely for development and testing. Transactions on devnet are processed the same way, with the same account model, the same fee structure in terms of lamports and rent, and the same general behavior — but SOL on devnet has no real-world monetary value and is freely available from public faucets.
+
+There's also **testnet**, a third network primarily used by validator operators to test upcoming protocol changes under more realistic network conditions, which is less relevant for typical token creation testing than devnet.
+
+The critical thing to understand is that devnet and mainnet are entirely separate ledgers. A wallet address is just a cryptographic keypair, so the same address can exist on both networks, but the balances, token accounts, and transaction history are completely independent — having 5 devnet SOL and a devnet token in your wallet tells you nothing about what exists in that same wallet on mainnet, and vice versa.
+
+<Callout>
+Devnet and mainnet share your wallet's address format, but nothing else. A token you create on devnet is a distinct, separate token from anything you later create on mainnet, even with identical name, symbol, and supply — you'll need to go through the creation flow again for the real launch.
+</Callout>
+
+## Why Testing Matters Specifically for Token Creation
+
+Token creation involves several steps where a mistake is either costly, embarrassing, or in some cases permanent and unfixable: choosing decimals (fixed forever at mint time, as covered in our [decimals and supply guide](/blog/solana-token-decimals-supply-guide)), setting your initial supply, attaching metadata correctly, and deciding whether to revoke mint and freeze authority. Revoking either authority is by design permanent and irreversible — that's precisely what makes it a meaningful trust signal to holders, but it also means there's no "undo" if you revoke prematurely or misunderstand what you're approving.
+
+Rehearsing this entire sequence on devnet first, where every mistake costs nothing and can simply be repeated, is the single easiest way to eliminate first-time errors before they happen with money on the line. This is especially valuable if you're new to Solana wallets generally, unfamiliar with what a transaction approval screen should look like, or trying out a token creator tool for the first time and want to verify its behavior before trusting it with a real launch.
+
+## Getting Set Up on Devnet
+
+### Switching Your Wallet's Network
+
+Most Solana wallets — Phantom, Solflare, Backpack, and others — include a network selector, usually tucked into settings, that lets you switch between mainnet, devnet, and testnet. Once switched, your wallet will show devnet balances and devnet transaction history instead of mainnet's, using the same address. Our [comparison of Phantom, Solflare, and Backpack](/blog/solana-wallet-comparison-phantom-solflare-backpack) covers the specifics of network switching for each of these wallets if you're not sure where to find the setting.
+
+<Callout>
+Double-check which network your wallet is pointed at before signing any transaction, especially if you regularly switch between devnet and mainnet during testing. Signing what you thought was a devnet transaction while your wallet was actually set to mainnet is a classic, avoidable mistake.
+</Callout>
+
+### Getting Devnet SOL
+
+Since devnet SOL has no real value, it's distributed freely through faucets rather than needing to be purchased. Options include:
+
+- **Command-line faucet requests**, using the Solana CLI's `solana airdrop` command pointed at a devnet RPC endpoint, if you're comfortable with a terminal.
+- **Web-based faucet interfaces**, where you paste in your wallet address and request a small amount of devnet SOL, typically capped per request to prevent abuse.
+- **Built-in wallet faucet features**, where some wallet applications include a direct "request devnet SOL" button when your wallet is switched to the devnet network, skipping the need for a separate tool entirely.
+
+A small amount of devnet SOL — often a fraction of what you'd request — is plenty to fully rehearse a token creation flow multiple times over, since devnet transaction costs mirror mainnet's lamport-denominated fee structure (see our [network fees guide](/blog/solana-network-fees-explained) for what those actual amounts look like), just without any real monetary cost behind them.
+
+## What to Actually Rehearse
+
+Simply switching networks and requesting a faucet drip isn't the valuable part — the value comes from deliberately walking through the specific steps you're planning to take on mainnet, in the same order, paying attention to the same details you'll need to get right for real.
+
+### Full Token Creation Flow
+
+Walk through [creating a token](/create-token) exactly as you plan to on mainnet: same decimals, same supply magnitude (even if the actual numbers differ for a test), and full metadata including name, symbol, and image. Confirm that the metadata resolves correctly and displays as expected — this is also a good opportunity to double check your [metadata setup](/blog/solana-token-metadata-explained) matches the Metaplex standard correctly, since a devnet dry run makes mistakes here free to discover and fix.
+
+### Authority Revocation
+
+Because revoking mint and freeze authority is irreversible, this is one of the highest-value things to rehearse before doing it for real. Create a devnet token, then walk through [revoking mint authority](/revoke-mint-authority) and [revoking freeze authority](/revoke-freeze-authority) exactly as you would on mainnet. Pay close attention to what your wallet's confirmation screen shows before you approve — understanding precisely what that approval screen looks like for a legitimate revocation transaction means you'll immediately notice if something looks different or unexpected when you do the real thing on mainnet.
+
+### Vanity Address Flow (If You Plan to Use It)
+
+If you're planning to claim a [custom vanity address](/blog/vanity-solana-address-guide) for your mainnet launch, it's worth understanding the search-and-claim mechanics on devnet first, particularly if you've chosen a longer or more specific pattern that will take noticeably longer to search for. Note that the 0.1 SOL platform fee for this feature is a real-money charge tied to actual usage, so check the specific test tooling available to you rather than assuming every environment lets you rehearse the paid step itself for free — but you can still learn the pattern-selection interface and understand roughly how search time scales with pattern complexity.
+
+### Liquidity Pool Creation (If Applicable)
+
+If your launch plan includes [adding liquidity](/blog/how-to-add-liquidity-solana-token) to a DEX pool, many major Solana DEXs have devnet-compatible deployments or testing environments where you can rehearse creating a pool, setting an initial price ratio, and understanding the interface before doing it with real capital. This is particularly valuable because pool creation interfaces often have several fields (initial deposit ratio, fee tier selection) where a mistake is expensive and hard to fully undo on mainnet.
+
+## Common Pitfalls When Moving From Devnet to Mainnet
+
+**Forgetting devnet tokens don't carry over.** Every account, mint, and balance you created on devnet is left behind when you switch to mainnet — you're starting from zero on the real network and need to go through the full creation flow again, including re-attaching metadata and re-deciding on authority settings.
+
+**Assuming devnet performance and congestion mirror mainnet.** Devnet is a lower-traffic network used mostly by developers, so it typically won't give you an accurate feel for confirmation times or the rare congestion-driven need for priority fees that can occur on mainnet during high-demand periods.
+
+**Not verifying the network before signing on mainnet.** After spending time testing on devnet, it's easy to develop muscle memory around approving transactions quickly. Before your real mainnet launch, slow down and re-verify your wallet is pointed at mainnet and that the transaction details match your actual intended parameters — supply, decimals, and metadata included.
+
+**Treating devnet testing as a substitute for a broader security review.** Devnet rehearsal confirms that a *flow* works as expected and that you understand the steps — it doesn't replace working through a full [security checklist](/blog/solana-token-security-checklist) or understanding [how mint and freeze authority can be abused in rug pulls](/blog/rug-pull-prevention-mint-freeze-authority) if you're launching a public-facing token that others will trust with real money.
+
+## When Devnet Testing Isn't Necessary
+
+Not every token creation needs a full devnet rehearsal first. If you're experienced with the flow, have created tokens before, and are comfortable with what each approval step involves, going straight to mainnet for a low-stakes personal or experimental token is reasonable — the guidance above is aimed particularly at first-time creators, anyone planning a public launch where mistakes have real reputational or financial consequences, and anyone about to use an unfamiliar tool for the first time.
+
+## Bringing It Together
+
+Devnet exists precisely so that the irreversible, real-money nature of mainnet doesn't have to mean learning by expensive trial and error. Because it runs the identical protocol and program code as mainnet, everything you learn by rehearsing there — how the wallet approval screens look, how metadata attachment behaves, exactly what revoking mint or freeze authority involves — transfers directly to your real launch, just without the cost or the risk. If you're planning your first token launch, a sensible path is: read through our [complete guide to creating a Solana token for free](/blog/create-solana-token-free-guide), rehearse the full flow on devnet including authority revocation, review your plan against the [security checklist](/blog/solana-token-security-checklist), and only then move to mainnet with real SOL and a token you intend to keep. The few extra minutes spent testing is a small price for the confidence of knowing exactly what you're approving when it finally counts.

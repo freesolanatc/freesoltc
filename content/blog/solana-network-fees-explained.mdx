@@ -1,0 +1,92 @@
+---
+title: "Solana Network Fees Explained: What You Actually Pay to Create a Token"
+slug: "solana-network-fees-explained"
+metaDescription: "A clear breakdown of Solana network fees — base transaction fees, priority fees, and rent — so you know exactly what it costs to create a Solana token free of platform charges."
+date: "2026-02-05"
+tags: ["Fees", "Guides", "Getting Started"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "How much does it actually cost to create a Solana token?"
+    answer: "The network-level cost is typically a small fraction of a cent for the base transaction fee, plus a refundable rent deposit of roughly 0.001 to 0.003 SOL per account created (mint account, metadata account, and your associated token account). Using Free Solana Token Creator, there is no additional platform fee for token creation itself — you only pay what the Solana network charges."
+  - question: "What is rent on Solana and do I get it back?"
+    answer: "Rent is a one-time deposit required to keep an account's data stored on the network permanently, calculated based on how much data the account holds. It is fully refundable if you ever close that account, and any account holding roughly two years' worth of rent upfront is considered 'rent-exempt' and never charged again, which is how nearly all token accounts work in practice."
+  - question: "What is a priority fee and do I need to pay one?"
+    answer: "A priority fee is an optional additional payment that increases the likelihood your transaction is processed quickly during periods of network congestion. For a routine token creation transaction under normal network conditions, a priority fee usually isn't necessary, though wallets and dapps sometimes add a small one automatically to improve reliability."
+  - question: "Why is the vanity address feature 0.1 SOL if the network fees are so low?"
+    answer: "The 0.1 SOL vanity address fee is a platform fee for the computational work of searching for a keypair matching your chosen prefix or suffix, separate from and in addition to the underlying Solana network fee for the transaction itself. Standard token creation, and revoking mint or freeze authority, never carry this or any other platform fee."
+  - question: "Do fees change based on how complex my token is?"
+    answer: "Slightly. Adding metadata, enabling additional Token-2022 extensions, or creating extra accounts each add a small additional rent deposit and a marginal amount of compute, but none of these push the total cost anywhere near what equivalent operations cost on many other chains. The overwhelming majority of the cost difference between a simple and a more advanced token setup is still measured in fractions of a cent."
+  - question: "Will I know the total cost before I sign anything?"
+    answer: "Yes. A well-built token creation flow shows you the estimated network fee and any rent deposits before you approve a transaction in your wallet, and your wallet itself will also display the SOL amount it's asking you to authorize, so there should be no surprises at signing time."
+---
+
+One of the most common questions from anyone new to Solana is deceptively simple: "how much does this actually cost?" It's a fair question, because the honest answer involves a few different components that get lumped together under the umbrella term "network fee." If you've read that you can [create a Solana token for free](/create-token), you might reasonably wonder what "free" really means here — free of what, exactly, and what are you still paying for? This article breaks down every piece of the cost stack: the base transaction fee, rent, priority fees, and where a platform fee (if any) fits in, so you have a complete and accurate picture before you ever click "create."
+
+## The Building Blocks of a Solana Transaction Fee
+
+Every transaction submitted to the Solana network incurs a base fee, and understanding what that fee actually pays for requires understanding what a transaction is doing under the hood.
+
+### Base Transaction Fee (Per Signature)
+
+Solana's base fee is calculated per signature required by a transaction, not based on computational complexity the way Ethereum gas is. As of this writing, the base fee is a fixed, tiny amount of lamports (the smallest unit of SOL, where 1 SOL equals 1,000,000,000 lamports) per required signature — typically around 0.000005 SOL for a simple single-signature transaction. A token creation transaction, which might require your wallet to sign for the payer, the new mint account, and potentially a metadata account, will have a base fee that scales with the number of signatures, but even a transaction requiring several signatures usually costs a small fraction of a cent in total base fees at typical SOL prices.
+
+This fee exists to compensate validators for processing and including your transaction, and it's paid regardless of network congestion — it isn't an auction the way Ethereum gas is, though there is a related mechanism, priority fees, that does behave more like an auction during busy periods.
+
+### Priority Fees (Optional, Congestion-Based)
+
+Solana's compute budget program allows any transaction to optionally attach a priority fee — an extra amount, denominated in micro-lamports per unit of compute, that validators can use to prioritize which transactions get included first when the network is busy. Think of this as similar in spirit to Ethereum's gas price auction, but far smaller in typical magnitude and entirely optional for most transaction types.
+
+Under normal network conditions, a straightforward token creation transaction doesn't need a priority fee at all — it will be included in the next block or two regardless. During periods of unusually high network demand (a popular NFT mint, a major memecoin launch causing a spike in activity), adding a small priority fee can help ensure your transaction lands promptly rather than getting deprioritized behind others. Most modern wallets and dapps handle this automatically, estimating a reasonable priority fee based on current network conditions so you don't have to guess.
+
+### Rent: A Deposit, Not a Fee
+
+This is the part of Solana's fee model that trips up the most people coming from other chains, because "rent" sounds like a recurring charge, but on Solana it functions almost the opposite way.
+
+Every account on Solana — including the mint account created when you make a new token, the metadata account that stores its name and symbol, and each holder's associated token account — needs to store some amount of data on the ledger indefinitely. To prevent the network from being flooded with abandoned, unfunded accounts, Solana requires that new accounts either pay rent periodically or, far more commonly, deposit enough SOL upfront to be considered "rent-exempt" — roughly two years' worth of rent paid in one lump sum. Once an account is rent-exempt, it is never charged again for as long as it exists.
+
+Critically, this deposit isn't spent — it's held by the account and is fully refundable if you ever close that account and reclaim the balance. For a typical SPL token, you're looking at a rent-exemption deposit of roughly 0.0014 SOL for the mint account itself, a similar small amount for the associated token account that holds your initial supply, and a modest amount for the Metaplex metadata account if you attach name, symbol, and image metadata. Added together, these deposits typically come to well under 0.01 SOL total, and again, that value isn't gone — it's locked into the accounts that make up your token, recoverable if those accounts are ever closed.
+
+<Callout>
+Rent-exemption deposits are not a fee you lose — they're SOL that remains associated with your token's accounts. This is different from the base transaction fee and any priority fee, which are genuinely spent and go to validators.
+</Callout>
+
+## Putting the Numbers Together: What a Real Token Creation Costs
+
+Let's walk through a realistic example. Say you're creating a new SPL token with 9 decimals, an initial supply of 1,000,000,000 tokens, and full metadata (name, symbol, image, description) via Metaplex, and you choose to revoke both mint and freeze authority at creation time. Here's roughly what that transaction stack involves, at typical SOL prices and normal network conditions:
+
+- **Base transaction fee(s):** a handful of signatures across the transaction(s) needed to initialize the mint, create your associated token account, mint the initial supply, attach metadata, and revoke authorities — typically totaling well under $0.01.
+- **Rent-exemption deposits:** roughly 0.002–0.004 SOL total across the mint account, your associated token account, and the metadata account — refundable if those accounts are ever closed, and again a small dollar amount at typical SOL prices.
+- **Priority fee:** usually $0 under normal conditions, small if the network happens to be busy when you submit.
+- **Platform fee:** $0 for token creation and for revoking mint or freeze authority on Free Solana Token Creator — there is no charge on top of the network cost for these actions.
+
+Put together, creating a fully-configured Solana token with metadata and revoked authorities typically costs somewhere in the neighborhood of a few cents to create — overwhelmingly dominated by refundable rent deposits rather than fees that are actually spent. Compare that to deploying an equivalent ERC-20 contract on Ethereum, which frequently costs multiple dollars even during quiet periods and can run into the tens of dollars during congestion; our [SPL vs ERC-20 comparison](/blog/solana-token-vs-erc20) goes deeper into why that gap exists structurally, not just anecdotally.
+
+## Where the One Paid Feature Fits In
+
+It's worth being precise about the one place a platform fee does apply on this site: the [vanity address](/blog/vanity-solana-address-guide) feature, which lets you claim a custom token address with a chosen prefix or suffix (for example, an address that starts with your project's name). That feature carries a flat 0.1 SOL fee, separate from and in addition to the normal network fee described above.
+
+That fee exists because generating a vanity address isn't free from a computational standpoint — it requires searching through large numbers of randomly generated keypairs client-side, in your browser, until one is found whose public address matches your requested pattern, and longer or more specific patterns require significantly more search time and computation. The 0.1 SOL fee reflects that added cost of computation and the value of a custom-branded address, not the underlying Solana network fee, which remains a separate, tiny cost paid directly to the network regardless of whether you use the vanity feature. If you don't need a custom address, standard token creation and both authority revocations remain entirely free of any platform charge — only the base Solana network fee applies.
+
+## Why "Free" Is an Accurate Claim, Not Marketing Spin
+
+It's reasonable to be skeptical when a tool advertises something as "free" — plenty of products use that word loosely. In this case, the claim is specific and verifiable: a [free Solana token creator](/create-token) doesn't add its own charge on top of what the network already requires. You can independently verify this by checking exactly what your wallet asks you to sign — the transaction it presents will show precisely how much SOL is being spent and where it's going, and you'll see it matches the base fee plus rent deposits described above, with nothing extra layered on for the platform itself. This transparency matters: any legitimate tool should let you inspect what you're approving before you sign, rather than asking for blind trust.
+
+The same logic applies to [revoking mint authority](/revoke-mint-authority) and [revoking freeze authority](/revoke-freeze-authority) after the fact — both are single, simple transactions against the existing Token Program, and both remain free of any platform fee, with only the tiny network cost applying.
+
+## How SOL Price Volatility Affects These Numbers
+
+Because rent and fees are denominated in SOL, and SOL's price relative to fiat currencies fluctuates, the dollar-equivalent cost of creating a token will drift even though the *SOL amount* required stays essentially constant. This is worth understanding so you don't get confused seeing different dollar figures cited at different times. The lamport costs for a signature, and the rent-exemption formula for a given amount of account data, are protocol parameters that don't change with market price — what changes is how many dollars that fixed SOL amount happens to be worth on a given day. If you're budgeting for token creation, it's more useful to think in terms of a very small, fixed amount of SOL (well under 0.01 SOL for a full setup with metadata) rather than trying to track a dollar figure that will drift with the market.
+
+## Common Fee-Related Mistakes to Avoid
+
+**Not having enough SOL in your wallet to cover rent deposits.** Even though these deposits are small and refundable, your wallet still needs the SOL available at the moment of the transaction. A common beginner mistake is funding a fresh wallet with just enough SOL to "look like" it covers the advertised fee, without leaving margin for rent on multiple accounts (mint, associated token account, metadata account) created in the same flow. A good rule of thumb is to have at least 0.02–0.05 SOL available before starting, which comfortably covers a full creation flow with metadata and authority revocation with room to spare.
+
+**Confusing platform fees with network fees when comparing tools.** When evaluating different token creation tools (a topic covered in our [comparison of Solana token creator tools](/blog/solana-token-creator-comparison)), make sure you understand whether an advertised price includes or excludes the underlying network cost, and whether there are additional charges for metadata, authority revocation, or other steps that some tools bundle separately.
+
+**Forgetting that closing accounts reclaims rent.** If you ever end up with token accounts you no longer need — for example, an associated token account for a token you no longer hold — closing that account returns the rent deposit to your wallet. This isn't automatic; it requires an explicit close-account instruction, but it's a useful way to recover SOL that might otherwise sit unused.
+
+**Assuming devnet costs reflect mainnet costs.** If you're testing on devnet before going live — something we strongly recommend and cover in our guide to [devnet vs mainnet testing](/blog/solana-devnet-vs-mainnet-testing-tokens) — remember that devnet SOL is free from a faucet and has no real value, so it won't give you an intuitive feel for real costs. The fee *structure* is identical between devnet and mainnet, but only mainnet SOL has actual monetary value.
+
+## The Bottom Line
+
+Solana's fee model is genuinely different from what many newcomers expect, and once you understand its three components — a tiny base transaction fee, optional priority fees during congestion, and refundable rent deposits — the economics of token creation become straightforward. For the vast majority of users creating a standard token, attaching metadata, and revoking mint or freeze authority, the total real-world cost is a small fraction of a dollar, dominated by refundable deposits rather than genuinely spent fees, and with no platform charge layered on top. The only feature that carries a deliberate platform fee is the optional vanity address generator, and that fee is disclosed upfront and separate from network costs. If you want to see these numbers for yourself before committing any SOL, you can start the process at [create a Solana token](/create-token) and review exactly what your wallet is asked to approve before signing anything — and if you're weighing whether to also lock in your token's supply and authority controls, our guides on [choosing decimals and supply](/blog/solana-token-decimals-supply-guide) and the [security checklist](/blog/solana-token-security-checklist) are natural next reads.

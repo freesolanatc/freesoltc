@@ -1,0 +1,101 @@
+---
+title: "Solana SPL Tokens vs Ethereum ERC-20: Key Differences Explained"
+slug: "solana-token-vs-erc20"
+metaDescription: "Compare Solana SPL tokens and Ethereum ERC-20 tokens across architecture, fees, authority controls, and tooling — and see why so many builders create Solana tokens free of platform fees."
+date: "2026-02-03"
+tags: ["Comparisons", "Guides", "Advanced"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "Is an SPL token the same thing as an ERC-20 token?"
+    answer: "They serve the same broad purpose — a fungible token standard on a smart contract platform — but they are implemented completely differently. ERC-20 is a Solidity interface each contract reimplements; SPL tokens are accounts governed by a single shared Token Program that every token on Solana reuses."
+  - question: "Why are Solana transaction fees so much lower than Ethereum gas fees?"
+    answer: "Solana uses a different fee model with small fixed base fees per signature plus optional priority fees, and its parallelized runtime and higher throughput reduce network congestion compared to Ethereum's auction-based gas market. In practice this means creating and transacting with SPL tokens costs a small fraction of a cent under normal conditions, versus dollars or tens of dollars for equivalent ERC-20 operations during busy periods."
+  - question: "Do SPL tokens have mint and freeze authority like ERC-20 tokens have owner functions?"
+    answer: "SPL tokens have mint authority and freeze authority as first-class fields baked into the Token Program itself, not custom code. ERC-20 tokens only have equivalent controls if the contract author manually wrote mint or blacklist functions, which means the presence and behavior of those controls varies contract to contract and requires reading the source code to verify."
+  - question: "Can I move an SPL token to Ethereum or vice versa?"
+    answer: "Not directly. SPL tokens and ERC-20 tokens live on separate, incompatible ledgers, so moving value between them requires a cross-chain bridge that locks or burns tokens on one side and mints a wrapped representation on the other. Bridging introduces its own trust and security assumptions distinct from either token standard."
+  - question: "Which standard is better for a new memecoin or community token?"
+    answer: "For most new projects prioritizing low costs, fast iteration, and simple minting/burning flows, SPL tokens on Solana are the more practical choice. ERC-20 remains attractive if your project specifically needs Ethereum's deeper liquidity venues or existing integrations, but that comes with materially higher deployment and transaction costs."
+  - question: "Do I need to know Rust to create an SPL token?"
+    answer: "No. Unlike ERC-20, where every token is its own deployed smart contract usually written in Solidity, creating an SPL token means initializing a mint account under the existing, audited Token Program — no custom contract code or deployment is required, which is why tools can generate one in a few clicks."
+---
+
+Anyone who has spent time in both the Solana and Ethereum ecosystems eventually asks the same question: why does creating a token on one chain cost a fraction of a cent and take seconds, while doing the same thing on the other can cost real money and require deploying and verifying a smart contract? The answer lies in a fundamental architectural difference between the two chains' token standards. ERC-20 and SPL tokens accomplish similar goals — representing a fungible asset that can be transferred, held, and tracked on-chain — but they get there through almost opposite designs. Understanding that difference matters whether you're a developer choosing a chain for a new project, a trader trying to understand what you're buying, or someone comparing why you can [create a Solana token for free](/create-token) in minutes but can't do the equivalent on Ethereum without paying gas for contract deployment.
+
+This article walks through the two standards side by side: how each one is implemented at the protocol level, what that means for fees and speed, how authority and control differ, and what the practical implications are for builders and holders. None of this is meant to declare one chain categorically "better" — they're different tools with different tradeoffs — but the differences are large enough that understanding them will change how you evaluate any token, regardless of which chain it's on.
+
+## Two Different Philosophies for Representing a Token
+
+The single biggest conceptual difference between ERC-20 and SPL tokens is *where the logic lives*.
+
+An ERC-20 token on Ethereum is a smart contract. When a developer creates a new ERC-20 token, they are writing (or copying) a Solidity contract that implements a specific interface: functions like `transfer`, `approve`, `balanceOf`, `totalSupply`, and a handful of others defined by the ERC-20 standard (EIP-20). That contract is compiled to EVM bytecode and deployed to the Ethereum network as its own independent program. The contract itself maintains an internal ledger — typically a mapping from address to balance — inside its own storage. Every single ERC-20 token on Ethereum, from the largest stablecoin to the smallest memecoin, is a separate program with its own deployed bytecode, even though the vast majority of them are functionally identical copies of the same OpenZeppelin template.
+
+Solana takes the opposite approach. There is one canonical, audited program deployed to the network — the SPL Token Program (and its newer sibling, the [Token-2022 program](/blog/understanding-token-extensions-token-2022)) — and every fungible token on Solana is represented as *data*, not code. Creating a new SPL token means initializing a "mint" account that stores metadata like decimals, supply, and authority fields, governed by that one shared program. Individual holders don't have balances tracked inside the mint account itself; instead, each wallet that wants to hold a given token creates its own associated token account, which is a small data account owned by the Token Program that records that wallet's balance for that specific mint.
+
+This has a cascading set of consequences. Because there's no new bytecode to deploy, compile, or audit for each token, creating an SPL token is cheap, fast, and doesn't require writing or reviewing custom contract code. Because every SPL token goes through the same program, wallets, explorers, and DeFi protocols can integrate with any SPL token using one consistent interface — there's no risk of a "non-standard" implementation with subtly different function signatures or missing safety checks, a problem that has bitten Ethereum tooling more than once. The tradeoff is flexibility: ERC-20 contracts can implement arbitrary custom logic (rebasing, transfer taxes, complex vesting), whereas plain SPL tokens are more constrained — though [Token-2022 extensions](/blog/understanding-token-extensions-token-2022) close much of that gap by adding optional, standardized behaviors like transfer fees and confidential transfers directly into the shared program.
+
+## Account Model vs Contract Storage
+
+This difference in philosophy traces back to a deeper architectural distinction between the two chains: Ethereum's account model versus Solana's account model — which, confusingly, use the word "account" to mean different things.
+
+On Ethereum, a contract account has associated persistent storage that only that contract's code can read and write, addressed by storage slots. An ERC-20 contract's balance mapping lives inside this storage, invisible to anything except calls into that specific contract.
+
+On Solana, *all* state lives in accounts, and accounts are owned by programs but exist as separate, independently addressable entities on the ledger. A mint account and an associated token account are both just accounts with data, owned by the Token Program, which is the only program allowed to modify their contents. This is why tools outside the token's own "contract" — wallets, indexers, other programs — can read and even reference token accounts directly without going through a middleman function call, and it's part of why Solana's parallel transaction execution model works: the runtime can see up front which accounts a transaction will touch and schedule non-overlapping transactions concurrently, something far harder to do when arbitrary contract storage access patterns aren't known in advance.
+
+## Fees: Cents vs Fractions of a Cent
+
+The fee difference between the two ecosystems is probably the most visible distinction to end users, and it's worth being precise about why it exists rather than just citing anecdotes.
+
+Ethereum uses a gas auction model. Every operation — storage writes, computation, contract deployment — costs a certain amount of gas, and users bid a gas price to get included in a block, with fees rising sharply during periods of network congestion. Deploying a new ERC-20 contract involves multiple expensive storage-writing operations, and even a simple transfer requires updating a balance mapping, which is a `SSTORE` operation, one of the priciest opcodes on the EVM. During normal conditions this might cost a few dollars; during a busy period it can cost tens of dollars for a single deployment.
+
+Solana's fee model is structured differently, as covered in more depth in our guide to [Solana network fees](/blog/solana-network-fees-explained). Base transaction fees are fixed per signature and denominated in a tiny fraction of SOL, and additional costs come from rent — a refundable deposit that keeps an account's data alive on the ledger — rather than from computation-heavy gas pricing. Because creating an SPL token doesn't involve deploying new code, there's no equivalent to "contract deployment gas." You're paying to initialize a handful of small accounts, which typically costs a small fraction of a cent in fees plus a modest, fully-refundable rent deposit. This is the core reason a platform can offer to [create SPL tokens for free](/create-token) — free, here, refers to the absence of a platform fee on top of the already-minimal network cost, not some subsidy of expensive gas.
+
+<Callout>
+Solana's low fees are a function of protocol design, not a temporary promotion. As long as the network isn't in an unusual congestion event, the cost of creating and transacting with SPL tokens stays consistently low, which is very different from Ethereum gas, which fluctuates by orders of magnitude based on demand.
+</Callout>
+
+## Mint Authority, Freeze Authority, and Ownership Controls
+
+Both ecosystems let a token's creator retain administrative control, but they express it in very different ways.
+
+On Ethereum, any control the creator retains over an ERC-20 token — the ability to mint more supply, pause transfers, or blacklist an address — exists only if the contract author wrote that functionality into the Solidity code. There's no universal standard for "mintable" or "pausable" ERC-20 tokens; instead, common patterns (like OpenZeppelin's `Ownable`, `Mintable`, and `Pausable` extensions) have become de facto conventions. Critically, this means verifying what powers a given ERC-20 token's owner has requires reading and understanding that specific contract's source code, which may or may not be verified and published. A rug pull vector on Ethereum often hides in a custom function with an innocuous name.
+
+Solana's Token Program builds two specific authority fields directly into every mint account: [mint authority](/blog/revoke-mint-authority-explained), which controls whether new tokens can be minted, and [freeze authority](/blog/revoke-freeze-authority-guide), which controls whether individual token accounts can be frozen and prevented from transferring. Because these are standardized fields on every SPL mint rather than arbitrary custom code, any wallet, explorer, or scanner can check a token's authority status in a single, predictable read — no source code review required. That standardization is also what makes it possible to build a one-click flow for revoking these authorities, which permanently and verifiably removes the ability to mint more supply or freeze holder accounts. Our guide on [how mint and freeze authority get abused in rug pulls](/blog/rug-pull-prevention-mint-freeze-authority) covers this dynamic in more detail, but the short version is that Solana's standardized authority model makes due diligence dramatically easier than digging through arbitrary Solidity.
+
+## Metadata: On-Chain Convention vs Off-Chain Standard
+
+ERC-20 contracts typically expose `name()`, `symbol()`, and `decimals()` as simple read functions baked into the contract itself, alongside `totalSupply()`. There is no standardized concept of a token logo or extended metadata at the protocol level — images and descriptions are typically pulled from third-party lists like token registries maintained by wallets, exchanges, or aggregators, which is why the "same" ERC-20 token can display different names or logos depending on which wallet you're using, and why scammers can deploy contracts mimicking a legitimate token's symbol.
+
+SPL tokens separate the mint account itself, which only stores decimals, supply, and authorities, from a metadata account, created via the Metaplex Token Metadata program, that stores the name, symbol, and a URI pointing to an off-chain JSON file with image and description fields. This metadata account is linked cryptographically to the mint via a deterministic address (a Program Derived Address), so any client can reliably look it up without depending on a centralized token list. Our deep dive on [Solana token metadata](/blog/solana-token-metadata-explained) walks through exactly how this works and how the metadata gets attached during creation.
+
+## Associated Token Accounts vs Implicit Balances
+
+Another practical difference shows up the moment a new user wants to hold a token for the first time. On Ethereum, if your wallet address is sent ERC-20 tokens, the contract's internal balance mapping simply records that fact — no separate account or setup step is needed on your end, though the sender does pay gas for the `SSTORE` write.
+
+On Solana, before a wallet can hold a given SPL token, it needs an Associated Token Account (ATA) for that specific mint — a small, deterministically-addressed data account that requires a tiny rent deposit to create. In practice, most modern flows automatically create the ATA for the recipient during the first transfer, and the rent deposit is fully recoverable if the account is ever closed. This is a small piece of friction that doesn't exist on Ethereum, but it's also what enables Solana's efficient account model and parallel execution — the tradeoff is intentional, not an oversight.
+
+## Tooling and the Developer Experience
+
+Building an ERC-20 token from scratch means writing or forking a Solidity contract, compiling it, deploying it (paying gas for that deployment), and typically getting the source verified on a block explorer so holders can inspect it. Auditing an unfamiliar ERC-20 token means reading arbitrary code, since every contract can technically do anything permitted by the EVM.
+
+Building an SPL token means calling into the existing, heavily used Token Program with the parameters for your specific token — decimals, initial supply, and which authorities to keep or discard — plus optionally attaching Metaplex metadata. There's no bytecode to write or verify because the logic is shared and already public. This is precisely why a browser-based flow can walk a user through [creating a Solana token](/create-token), [choosing decimals and supply](/blog/solana-token-decimals-supply-guide), attaching metadata, and revoking authorities — all without the user ever touching a compiler. It also means every SPL token, no matter how it was created, behaves identically at the protocol level, which is not something you can say about the universe of ERC-20 contracts in the wild.
+
+## Which Standard Should You Actually Use?
+
+If you're building a new fungible token project today and evaluating chains, the SPL vs ERC-20 decision usually comes down to a few practical questions rather than abstract technical preference:
+
+**Cost sensitivity.** If your project needs to mint frequently, run promotions, airdrop to large holder lists, or otherwise generate a lot of on-chain activity, Solana's fee structure makes that dramatically cheaper to sustain. Ethereum gas costs can make high-frequency token operations prohibitively expensive.
+
+**Need for arbitrary custom logic.** If your token requires bespoke mechanics that go well beyond what standardized extensions offer — highly custom vesting logic entangled with other contract state, for instance — a hand-written Solidity contract gives you unlimited flexibility, at the cost of needing a real audit.
+
+**Ecosystem and liquidity venues.** Some liquidity pools, protocols, and institutional integrations are chain-specific. If your target users or partners are exclusively on Ethereum, that may outweigh cost considerations.
+
+**Ease of trustless verification.** If you want holders to be able to verify your token's authority status and supply mechanics without reading code, SPL's standardized authority fields make that trivial. This is a meaningful trust signal for retail-facing projects like memecoins or community tokens, where most holders will never read a line of source code.
+
+For the large and growing category of projects — memecoins, community tokens, loyalty points, in-game currencies, DAO governance tokens — where low transaction costs, fast iteration, and easy holder verification matter more than bespoke contract logic, SPL tokens on Solana have become the default choice for good reason. If you're ready to see the process firsthand, you can [create an SPL token free of platform fees](/create-token) and compare the experience directly against what an ERC-20 deployment would require. And if you're specifically interested in the newer extension system that gives SPL tokens some of the custom-logic flexibility historically associated with Solidity, it's worth reading about [Token-2022 and its extensions](/blog/understanding-token-extensions-token-2022) next.
+
+## Common Misconceptions Worth Clearing Up
+
+A few misunderstandings come up often enough to address directly. First, "SPL token" is not a brand or a specific coin — it's a standard, the same way "ERC-20" is a standard, not a coin. Second, low fees on Solana don't mean lower security; the Token Program has been extensively used and reviewed precisely because every token relies on the same shared code, which concentrates scrutiny rather than diluting it across thousands of independent contracts. Third, the presence of mint or freeze authority on an SPL token isn't inherently malicious — plenty of legitimate projects retain mint authority temporarily for planned emissions — what matters is whether that authority has been disclosed and whether holders can verify its status, which is exactly what our [security checklist](/blog/solana-token-security-checklist) is built around.
+
+Finally, it's worth remembering that neither standard is "safer" in some absolute sense purely because of its architecture — a well-audited ERC-20 contract with authority renounced can be just as trustworthy as an SPL token with mint and freeze authority revoked. The difference is how much work it takes to verify that trustworthiness, and on that front, SPL's standardized, protocol-level authority fields give holders a meaningfully easier path to due diligence.

@@ -1,0 +1,98 @@
+---
+title: "How Mint and Freeze Authority Are Used in Rug Pulls (and How to Protect Yourself)"
+slug: "rug-pull-prevention-mint-freeze-authority"
+metaDescription: "Learn how mint authority and freeze authority are exploited in Solana rug pulls, with real mechanics explained, plus how to verify a token is safe or lock down your own."
+date: "2026-04-01"
+tags: ["Security", "Advanced", "Memecoins"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "What is a rug pull, technically speaking?"
+    answer: "A rug pull is any scenario where a token's creator uses a control mechanism they retained — most commonly an active mint authority, freeze authority, or unlocked liquidity — to extract value from holders after they've bought in, leaving those holders with a devalued or untradeable position. It's a general term covering several distinct technical mechanisms, not a single specific attack."
+  - question: "Can a rug pull happen even if mint and freeze authority are both revoked?"
+    answer: "Yes. Revoking both authorities removes two major rug-pull mechanisms, but liquidity pool manipulation, such as withdrawing unlocked liquidity, is a separate and equally common method that doesn't depend on either authority. A fully safe token needs revoked authorities and properly locked or burned liquidity."
+  - question: "How can I check if a token's mint authority has been used to inflate supply?"
+    answer: "A block explorer's token supply history, or the mint account's current total supply compared to what was reported at launch, will reveal any inflation. Some explorers also let you view the full transaction history of the mint account directly, showing every mint instruction ever executed against it."
+  - question: "Is it possible to revoke mint authority partway, or only for a limited time?"
+    answer: "No. Revoking mint authority on the SPL Token program is a one-time, permanent, all-or-nothing action — once set to null, it can never be reassigned to any wallet, including the original owner. There's no time-limited or partial revocation option within the standard program."
+  - question: "Are rug pulls illegal?"
+    answer: "In many jurisdictions, rug pulls can constitute securities fraud or wire fraud depending on the specifics, and there have been real prosecutions, but enforcement across a global, pseudonymous ecosystem is inconsistent and often slow. Practically, prevention through on-chain verification is far more reliable than expecting after-the-fact legal recourse."
+  - question: "Does revoking mint and freeze authority cost anything?"
+    answer: "On this platform, revoking both mint and freeze authority is free — you only pay Solana's minimal network transaction fee, typically a small fraction of a cent. There's no legitimate reason for a genuine project to skip this step given how low the cost is."
+---
+
+Every rug pull tells a slightly different story, but the underlying mechanics fall into a small number of well-understood patterns, and nearly all of them trace back to a token creator retaining some form of control they didn't disclose, or that holders didn't think to check. On Solana specifically, two of those control mechanisms — mint authority and freeze authority — are baked directly into the SPL Token standard itself, which means every single token either has them revoked or doesn't, verifiably, on-chain. Understanding exactly how these two permissions get exploited is the single most useful thing you can learn if you want to evaluate tokens safely, or if you want to build one that people can actually trust.
+
+This article goes deep on the mechanics: what mint and freeze authority actually let a holder do, the specific ways they've been used to extract value from buyers, how to verify a token's status yourself, and what it looks like to build and launch a token that closes these doors deliberately and verifiably.
+
+## The Root Cause: Authorities Are Opt-Out, Not Opt-In
+
+Here's the detail that catches a lot of newcomers off guard: when you create a standard SPL token, mint authority and freeze authority are active by default, assigned automatically to the wallet that created the token. Nothing forces a creator to disclose this, and nothing prevents a creator from keeping both authorities active indefinitely while telling the community whatever they'd like about their intentions. The SPL Token program doesn't have an opinion about whether that's a good idea — it just implements the mechanism and lets the creator decide.
+
+This is not a flaw in Solana's design — the same optionality is what allows legitimate use cases, like a game studio that needs to mint reward tokens over time, or a regulated stablecoin issuer that needs freeze capability for compliance reasons. The problem is entirely about disclosure and verification: a buyer has no way to distinguish, just by looking at a token's name and marketing, between a project that retained authority for a legitimate operational reason and one that retained it specifically to exploit holders later. The only way to tell the difference is to check the mint account directly. For the full mechanics of how each authority works, see our dedicated guides on [mint authority](/blog/revoke-mint-authority-explained) and [freeze authority](/blog/revoke-freeze-authority-guide).
+
+## How Mint Authority Gets Exploited
+
+### The Basic Mechanism
+
+Mint authority is the permission to create new tokens, increasing total supply beyond whatever existed at launch. There's no cap enforced by the SPL Token program itself — if mint authority is active, the holder of that authority can mint any additional amount, at any time, in a single transaction. There's no delay, no announcement requirement, no on-chain warning period. The first sign anyone has that it happened is often the transaction itself, already confirmed.
+
+### The Exploit Pattern
+
+The classic version of this exploit looks like this: a project launches with an advertised fixed supply — say, one billion tokens — and prices, liquidity, and community narrative all build around that number. Buyers accumulate a position based on their expected share of that fixed supply. Then, without warning, the creator mints an additional supply — sometimes matching or dwarfing the original amount — and either sells it directly into the liquidity pool or distributes it to wallets that then sell. The sudden supply increase collapses the price, and because the new tokens cost the creator essentially nothing to create, any amount of selling at any price is pure profit for them and pure loss for everyone who bought in believing the supply was fixed.
+
+A subtler variant doesn't involve an immediate dump — the creator simply holds the minted tokens as leverage, using the threat of dilution to extract concessions or attention, or mints smaller amounts repeatedly over time in a way that's harder for casual holders to notice than one dramatic event.
+
+### How to Detect It
+
+Check the mint account on a block explorer. The mint authority field will show either a specific wallet address (active, exploitable) or a null value, often displayed as "None" (revoked, safe from this specific vector). If you want to check whether inflation has already happened, compare the current total supply against what was stated at launch, or review the mint account's transaction history directly for mint instructions after the initial creation.
+
+<Callout>An active mint authority doesn't guarantee bad intent — plenty of legitimate projects keep it active temporarily for planned, disclosed reasons like staking rewards or ecosystem grants. What matters is whether that intent is disclosed clearly and whether the authority gets revoked once the stated need is fulfilled. Undisclosed, indefinite, active mint authority on a token marketed as having a "fixed supply" is the actual red flag.</Callout>
+
+## How Freeze Authority Gets Exploited
+
+### The Basic Mechanism
+
+Freeze authority is a more surgical tool than mint authority. Rather than affecting the whole market at once, it lets the holder freeze individual token accounts — meaning a specific wallet's tokens become completely immovable, unable to be transferred or sold, while every other wallet continues trading normally. The frozen wallet still technically "owns" the tokens; it simply cannot do anything with them until the same authority unfreezes the account, if it ever does.
+
+### The Exploit Pattern
+
+The most common exploit pattern is what's sometimes informally called a "honeypot": buyers are able to purchase the token freely, and often even see it moving in value in a way that looks encouraging, but when they attempt to sell, the transaction fails or their account gets frozen preemptively, trapping their position. Because buying still works normally, the token can look completely healthy — with real trading volume and apparent price action — right up until an individual holder tries to exit.
+
+A more targeted variant involves freezing specific large holders or specific wallets identified as threats to a planned price manipulation, effectively locking out anyone who might sell in a way that disrupts the creator's plans, while leaving the broader market of smaller, less-informed holders untouched and none the wiser.
+
+### How to Detect It
+
+The same block explorer check applies: look at the freeze authority field on the mint account. A specific wallet address means the authority is active and this exploit vector is available to whoever controls that wallet; a null value means it's permanently closed off. Unlike mint authority abuse, freeze authority abuse often isn't visible in aggregate trading data — the token can look perfectly liquid and active while individual holders are quietly locked out, which is exactly what makes it dangerous and why checking the authority field directly, rather than relying on visible trading activity, matters so much.
+
+## Beyond Authorities: Liquidity Manipulation
+
+Mint and freeze authority get the most attention because they're baked into the token standard itself and are easy to check in isolation, but they're not the only mechanism. Unlocked liquidity is, by some measures, an even more common rug-pull vector, and it operates independently of both authorities — a token can have both fully revoked and still be rugged through its liquidity pool.
+
+Here's how it works: when a creator adds liquidity to a DEX pool, they receive LP (liquidity provider) tokens representing their share of that pool. If those LP tokens remain in a wallet the creator controls — rather than being locked in a time-vault contract or sent to a burn address — the creator can withdraw the underlying liquidity at any time, taking the paired SOL or stablecoin out and leaving buyers holding a token with no functioning market to sell into. This is often executed suddenly, and it's frequently the final step in a rug pull that also involved mint authority abuse, freeze authority abuse, or both.
+
+Checking liquidity lock status is a separate step from checking authorities — see our full [security checklist](/blog/solana-token-security-checklist) for how to verify it, and our [guide to adding liquidity](/blog/how-to-add-liquidity-solana-token) for what proper, locked liquidity setup looks like from the creator's side.
+
+## Why These Patterns Are So Common on Solana Specifically
+
+It's worth being direct about why this article exists in the Solana context specifically, rather than being a generic crypto security piece. Solana's combination of extremely low transaction fees and fast confirmation times — the same properties that make it an excellent platform for legitimate experimentation and rapid iteration — also make it exceptionally cheap and fast to launch large numbers of tokens, test which ones gain traction, and execute exploit patterns like the ones above with minimal upfront cost if something doesn't work as planned. This isn't a flaw unique to Solana; it's a direct consequence of the same low-friction properties that make the network attractive for everything else, including [legitimate memecoin launches](/blog/how-to-launch-memecoin-solana) done properly.
+
+The practical upshot is that Solana holders need to treat on-chain verification as a routine habit, not an occasional precaution reserved for obviously sketchy tokens. The volume of tokens launched daily makes it impractical to rely on reputation or word-of-mouth alone to filter out risk.
+
+## Building a Token That Closes These Doors
+
+If you're on the creator side, the good news is that closing off both major exploit vectors described here is fast, free, and permanent. Here's the sequence:
+
+1. **[Create your SPL token](/create-token)** with your decimals and supply decided in advance — see our [guide to decimals and supply](/blog/solana-token-decimals-supply-guide) if you haven't finalized those yet.
+2. **Set up metadata properly** so your token displays correctly and looks intentional, not thrown together. Our [metadata guide](/blog/solana-token-metadata-explained) covers this in full.
+3. **[Revoke mint authority](/revoke-mint-authority)** — for free, paying only Solana's minimal network fee. This permanently and irreversibly removes the ability for anyone, including you, to inflate supply beyond what already exists.
+4. **[Revoke freeze authority](/revoke-freeze-authority)** — also free. This permanently removes the ability to freeze any holder's account, closing off the honeypot pattern entirely.
+5. **Add liquidity and lock or burn the LP tokens.** This step involves real capital, unlike the steps above, but it's what closes the third major exploit vector. See our [liquidity guide](/blog/how-to-add-liquidity-solana-token) for the mechanics.
+6. **Publish proof.** Share the explorer link showing revoked authorities and locked liquidity alongside your launch announcement. This is the single most effective piece of evidence you can offer skeptical prospective holders, and it costs you nothing beyond the steps you've already taken.
+
+<Callout>Because both authority revocations are permanent and irreversible, double-check your token's name, symbol, supply, and metadata before revoking. There is no way to reassign mint or freeze authority back to a wallet once it's set to null — plan your final checks first, then revoke.</Callout>
+
+## A Note on Trust and Verification
+
+It's worth stepping back and naming the broader pattern here: every exploit described in this article depends on holders not checking something that was, the entire time, publicly and verifiably available on-chain. That's both the encouraging and the sobering part of Solana's transparency model. Encouraging, because it means you don't have to trust anyone's word — you can check mint authority, freeze authority, and liquidity lock status yourself, in a few minutes, using free public tools. Sobering, because it means nearly every rug pull that has ever happened on Solana was, in principle, avoidable by the people who lost money, if they had known what to check and taken the time to check it.
+
+That's the gap this article and our broader [security checklist](/blog/solana-token-security-checklist) are aimed at closing. If you're evaluating a token, spend the two minutes it takes to check its mint account on an explorer before you buy. If you're building one, spend the equivalent effort to revoke both authorities and lock your liquidity before you promote it — the tools to do so are free, the process takes minutes, and the trust it buys you with a skeptical, increasingly sophisticated market is disproportionate to the effort involved. For more on the mechanics of token creation and the safeguards available to you as a creator, the [FAQ](/faq) covers common questions about the process end to end.

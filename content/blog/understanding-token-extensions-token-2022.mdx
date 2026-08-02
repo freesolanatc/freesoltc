@@ -1,0 +1,99 @@
+---
+title: "Understanding Token-2022: Solana's Next-Generation Token Extensions"
+slug: "understanding-token-extensions-token-2022"
+metaDescription: "A clear guide to Token-2022 (Token Extensions), Solana's newer token program — what extensions it adds, how it differs from the original SPL Token Program, and when to use it."
+date: "2026-02-14"
+tags: ["Advanced", "Guides", "Metadata"]
+author: "Free Solana Token Creator Team"
+faq:
+  - question: "Is Token-2022 a replacement for the original SPL Token Program?"
+    answer: "No. The original Token Program continues to run and is not being deprecated — Token-2022 is a separate, newer program that coexists alongside it. A given mint is created under one program or the other; the two aren't interchangeable for an existing token, so the choice is made at creation time."
+  - question: "Do I need Token-2022 for a simple memecoin or community token?"
+    answer: "Usually not. If your token just needs a name, symbol, image, supply, and the ability to revoke mint and freeze authority, the original SPL Token Program covers all of that and remains the more widely and simply supported option across wallets and DEXs. Token-2022 becomes relevant when you specifically need one of its extensions, like a built-in transfer fee."
+  - question: "What is the transfer fee extension and how does it work?"
+    answer: "The transfer fee extension lets a mint automatically withhold a configurable percentage of every transfer, which accumulates in the recipient's token account and can later be collected by a designated withdraw authority. This enables built-in creator royalties or protocol revenue on every transfer without needing a separate custom contract."
+  - question: "Are Token-2022 tokens supported by all Solana wallets and DEXs?"
+    answer: "Support has grown substantially since Token-2022's introduction, and major wallets and DEXs increasingly handle it, but support is not universal to the same degree as the original Token Program, which every Solana tool has supported for years. Before choosing Token-2022 for a public-facing token, verify that your target wallets and trading venues explicitly support it and the specific extensions you plan to use."
+  - question: "Does Token-2022 have its own version of mint and freeze authority?"
+    answer: "Yes. Mint authority and freeze authority work the same conceptually under Token-2022 as under the original Token Program, and the same due-diligence principles apply — a Token-2022 mint's authority status should be checked the same way, and can be revoked the same way, as a standard SPL token."
+  - question: "Can I combine multiple Token-2022 extensions on one mint?"
+    answer: "Yes, a single mint can enable several compatible extensions at once — for example, transfer fees together with a non-transferable restriction or metadata pointer — though not every combination makes sense together, and each additional extension adds a small amount of extra account data and therefore a slightly larger rent deposit."
+---
+
+For the first several years of Solana's existence, every fungible token — from major stablecoins to the smallest memecoin — was built on the same original SPL Token Program, a deliberately minimal program that handled minting, transferring, and the two authority fields (mint and freeze) covered elsewhere on this blog, and nothing more. That simplicity was a feature: a small, heavily audited, unchanging program that every wallet and protocol could integrate with confidently. But it also meant that any behavior beyond the basics — a transfer fee, a non-transferable token, richer on-chain metadata — had to be bolted on through separate programs and conventions, if it was possible at all.
+
+Token-2022, sometimes referred to by its more descriptive name "Token Extensions," is Solana's answer to that limitation: a newer, parallel token program that keeps the same core mental model — mints, token accounts, mint authority, freeze authority — while adding an extensible system of optional behaviors you can turn on for a given mint at creation time. This article explains what Token-2022 actually is, walks through its most useful extensions, and — importantly — helps you decide whether your project actually needs it or whether the original Token Program remains the better fit.
+
+## Why a New Program Instead of Modifying the Old One
+
+It's a fair question: why not just add these features to the existing Token Program? The answer comes down to a combination of security conservatism and backward compatibility. The original Token Program has been running unchanged and heavily relied upon for years, and every wallet, DEX, and protocol integration on Solana assumes its exact, fixed behavior. Modifying that program in place — even to add strictly optional features — would mean re-auditing and re-trusting a piece of infrastructure that the entire ecosystem depends on, and any bug introduced in the process could jeopardize enormous amounts of value across the network.
+
+Token-2022 instead ships as an entirely separate program, deployed independently, that implements the same base interface as the original (so wallets that already understand SPL tokens conceptually can adapt to it) while adding an extension framework for optional additional behaviors. This means the original Token Program keeps running exactly as it always has, untouched and unaffected, while Token-2022 evolves separately with its own audit history and its own adoption curve across wallets and tooling.
+
+<Callout>
+Token-2022 is not "SPL tokens version 2" replacing the original — both programs run in parallel indefinitely. A token you create today is minted under one program or the other, and that choice is fixed at creation time; you can't retroactively add Token-2022 extensions to an existing standard SPL token.
+</Callout>
+
+## The Core Idea: Extensions Are Opt-In
+
+The defining design principle of Token-2022 is that every additional feature is an extension you explicitly enable when creating a mint or a token account — nothing is on by default beyond the base behavior shared with the original Token Program. A Token-2022 mint with zero extensions enabled behaves essentially identically to a standard SPL token: it has decimals, a supply, mint authority, and freeze authority, and nothing more. You only take on the complexity (and the slightly larger account size and rent) of a given extension if your project specifically needs it.
+
+This matters because it means "using Token-2022" isn't an all-or-nothing decision with a fixed bundle of new behaviors — it's closer to a menu you can pick from based on what your token actually needs, while ignoring the rest.
+
+## The Extensions That Matter Most
+
+Token-2022 supports a growing list of extensions; here are the ones most relevant to typical projects.
+
+### Transfer Fees
+
+The transfer fee extension lets a mint automatically withhold a configurable basis-point percentage of every transfer at the protocol level. The withheld amount accumulates in the recipient's own token account rather than being redirected anywhere immediately, and a designated withdraw authority can later collect the accumulated fees across all holders. This is a meaningful upgrade over how creator royalties or protocol revenue had to be implemented previously — historically, enforcing a fee on every transfer required either trusting a marketplace to honor it voluntarily or building custom, non-standard contract logic. With this extension, the fee is enforced by the token program itself, on every transfer, everywhere the token moves.
+
+The tradeoff is real, though: a token with a built-in transfer fee is not a drop-in replacement for a fee-free token from a trader's perspective, and some DEXs and aggregators handle fee-charging tokens with extra care (or don't support them at all) because a naive integration could miscalculate expected output amounts. If you're considering this extension, verify that your target trading venues explicitly support fee-on-transfer Token-2022 mints before launch.
+
+### Non-Transferable Tokens
+
+This extension permanently locks a token to the account it was minted into, preventing any transfer at all after the initial mint. This is useful for representing things that shouldn't be tradeable by design — soulbound credentials, proof-of-attendance tokens, membership badges, or achievement markers tied permanently to a specific wallet. It's a fundamentally different use case than a typical fungible, tradeable token, and it's worth being clear with your community about this distinction if you use it, since holders may otherwise expect to be able to sell or transfer what they've received.
+
+### Interest-Bearing Tokens
+
+This extension lets a mint configure an interest rate that affects how a token's displayed balance is presented over time, without requiring active rebasing transactions. It's a specialized feature most relevant to yield-bearing or fixed-income-style DeFi products rather than typical community or memecoin launches, and it requires careful understanding from both the issuer and any integrating protocol to display and account for correctly.
+
+### Confidential Transfers
+
+This extension uses zero-knowledge proofs to allow transfer amounts to be encrypted on-chain while still enabling the network to validate that a transaction is legitimate (that the sender has sufficient balance, for instance) without revealing the exact amount publicly. This is a genuinely advanced feature aimed at use cases requiring transaction privacy, and it comes with meaningfully more implementation complexity than any of the other extensions listed here — it's not something to reach for casually.
+
+### Metadata Pointer and Metadata Extension
+
+Token-2022 also includes a way to store metadata (name, symbol, URI) directly within extension data on the mint account itself, rather than relying on a separate Metaplex metadata account linked via a Program Derived Address. This is a genuine architectural alternative to the pattern described in our [guide to Solana token metadata](/blog/solana-token-metadata-explained), though the Metaplex approach remains extremely widely supported and is often still used even alongside Token-2022 mints, since so much existing tooling was built expecting metadata in that form.
+
+### Permanent Delegate
+
+This extension designates an address with standing authority to transfer or burn tokens from *any* holder's account, not just its own — a significant departure from the base model where only the account owner (or an explicitly approved delegate) can move their own tokens. This has legitimate uses in regulated or enterprise contexts (clawback provisions required by certain financial products, for instance) but represents a meaningfully different trust model than a typical open community token, and its presence should be disclosed prominently to holders, since it amounts to a standing, protocol-level override of normal transfer permissions.
+
+### Default Account State
+
+This extension lets a mint specify that newly created token accounts start in a frozen state by default, requiring an explicit unfreeze before the holder can transact. This is sometimes used for compliance-oriented tokens that need to gate participation until some verification step occurs, but for a typical public launch, it would create a confusing experience where new holders can't immediately transact, so it's worth using deliberately and communicating clearly if you do.
+
+## Mint and Freeze Authority Still Apply
+
+It's worth emphasizing that all the concepts covered elsewhere on this blog around [mint authority](/blog/revoke-mint-authority-explained) and [freeze authority](/blog/revoke-freeze-authority-guide) carry over unchanged to Token-2022 mints. A Token-2022 token still has a mint authority field controlling whether new supply can be created, and a freeze authority field controlling whether individual accounts can be frozen — the extension system adds new *optional* capabilities on top of this base, but doesn't change or remove the fundamental authority model. The same due-diligence practices from our [security checklist](/blog/solana-token-security-checklist) apply just as much to a Token-2022 mint as to a standard SPL token — if anything, a Token-2022 mint deserves *more* scrutiny, since extensions like permanent delegate or default account state introduce additional control surfaces beyond what a standard token has, and holders should specifically check which extensions are enabled, not just the authority fields.
+
+## Compatibility: The Real-World Consideration
+
+The single biggest practical factor in deciding whether to use Token-2022 is ecosystem support. The original Token Program has near-universal support across every wallet, DEX, indexer, and protocol on Solana, simply because it's been the only option for most of the ecosystem's history. Token-2022 support has expanded substantially as major wallets and DEXs have added integration work, but it is not yet uniformly guaranteed across every tool a holder might use, and support for specific *extensions* (as opposed to bare Token-2022 support) varies even more — a wallet might display a basic Token-2022 mint correctly while not properly accounting for a transfer fee extension's withheld amounts, for instance.
+
+Before launching a public-facing token using Token-2022 extensions, especially ones like transfer fees that affect trading mechanics, verify directly with your intended trading venues and wallet targets that they support both Token-2022 broadly and your specific extension. This is genuinely different advice from "just use Token-2022, it's newer" — newer doesn't automatically mean better-supported for your specific use case, and a compatibility gap discovered after launch is a painful, sometimes unfixable problem since extensions are set at mint creation and can't be added retroactively.
+
+## When to Choose Token-2022 vs the Original Token Program
+
+As a practical decision framework:
+
+**Choose the original SPL Token Program if:** you're creating a standard fungible token — a memecoin, a community token, a simple utility token — with no need for built-in transfer fees, non-transferability, or other specialized behavior. This covers the large majority of new token launches, and it maximizes compatibility with every wallet and trading venue without any extra verification work.
+
+**Choose Token-2022 if:** your project's design specifically depends on one of its extensions — for example, you want enforced creator royalties on every transfer via the transfer fee extension, or you're issuing non-transferable membership credentials — and you've verified that your target audience's wallets and any trading venues you plan to use support both Token-2022 and the specific extension you need.
+
+For most people reading this as they consider [creating their first Solana token](/create-token), the original Token Program remains the simpler, more broadly compatible, and entirely sufficient choice — it's what powers the overwhelming majority of tokens on Solana today, including through this platform's standard creation flow. Token-2022 is a powerful and increasingly important part of Solana's token infrastructure, but it's a tool for specific, deliberate use cases rather than a universal upgrade every new project should default to.
+
+## Looking Ahead
+
+Token-2022's extension model reflects a broader pattern in Solana's development philosophy: keep the core primitives simple, audited, and stable, and add new capability through composable, optional layers rather than by constantly modifying foundational infrastructure. As more wallets, DEXs, and protocols complete their Token-2022 integration work, the compatibility gap between it and the original Token Program will likely continue narrowing, and extensions like transfer fees and confidential transfers may become standard tools rather than specialized ones. For now, the right approach is to match your token's technical requirements to the program that actually supports them, rather than choosing based on which one sounds newer — and if you're still working out foundational decisions like decimals and supply before you get to this level of detail, our guide on [choosing decimals and initial supply](/blog/solana-token-decimals-supply-guide) is a good next stop.
