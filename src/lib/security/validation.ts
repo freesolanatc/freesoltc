@@ -3,6 +3,8 @@ import { BASE58_ALPHABET, VANITY_MAX_CHARS, VANITY_MIN_CHARS } from "@/types/van
 
 const base58Regex = new RegExp(`^[${BASE58_ALPHABET}]+$`);
 const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export const solanaAddressSchema = z
   .string()
@@ -39,6 +41,12 @@ export const tokenFormSchema = z
       .refine((v) => BigInt(v) > 0n, "Supply must be greater than 0")
       .refine((v) => BigInt(v) <= 18446744073709551615n, "Supply exceeds the maximum token supply"),
     description: z.string().trim().max(500, "Max 500 characters").optional().default(""),
+    image: z
+      .instanceof(File)
+      .refine((file) => ACCEPTED_IMAGE_TYPES.includes(file.type), "Use a PNG, JPEG, WEBP, or GIF image.")
+      .refine((file) => file.size <= MAX_IMAGE_BYTES, "Image must be smaller than 2MB.")
+      .nullable()
+      .refine((file) => file !== null, { message: "Upload a token image first." }),
     social: socialLinksSchema.optional().default({}),
     revokeMintAuthority: z.boolean().default(false),
     revokeFreezeAuthority: z.boolean().default(false),
