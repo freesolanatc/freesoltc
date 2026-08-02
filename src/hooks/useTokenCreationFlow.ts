@@ -8,6 +8,7 @@ import { composeTransactions } from "@/lib/solana/txSequencer";
 import { uploadTokenMetadata } from "@/lib/solana/metadata";
 import { buildVanityFeeTransferParams } from "@/lib/payment/verifyVanityPayment";
 import { getExplorerUrl } from "@/lib/solana/explorer";
+import { confirmTransactionRobust } from "@/lib/solana/connection";
 import { claimOnChainTask } from "@/lib/points/claimPointsClient";
 import { useVanityWorkerPool } from "@/hooks/useVanityWorkerPool";
 import type { TokenFormValues, TokenCreationResult } from "@/types/token";
@@ -83,9 +84,15 @@ export function useTokenCreationFlow() {
         if (values.claimCustomAddress) {
           setState({ status: "awaiting-vanity-payment", error: null, result: null });
           const transferParams = buildVanityFeeTransferParams(wallet.publicKey.toBase58());
-          const transferTx = new Transaction().add(SystemProgram.transfer(transferParams));
+          const { blockhash: transferBlockhash, lastValidBlockHeight: transferLastValidBlockHeight } =
+            await connection.getLatestBlockhash("confirmed");
+          const transferTx = new Transaction({
+            feePayer: wallet.publicKey,
+            blockhash: transferBlockhash,
+            lastValidBlockHeight: transferLastValidBlockHeight,
+          }).add(SystemProgram.transfer(transferParams));
           const signature = await wallet.sendTransaction(transferTx, connection);
-          await connection.confirmTransaction(signature, "confirmed");
+          await confirmTransactionRobust(connection, signature, transferBlockhash, transferLastValidBlockHeight);
           vanityPaymentSignatureRef.current = signature;
           if (cancelRequestedRef.current) return;
 
@@ -145,7 +152,7 @@ export function useTokenCreationFlow() {
           }
           const signature = await wallet.sendTransaction(step.transaction, connection);
           setState({ status: "confirming", error: null, result: null });
-          await connection.confirmTransaction(signature, "confirmed");
+          await confirmTransactionRobust(connection, signature, step.blockhash, step.lastValidBlockHeight);
           signatures.push(signature);
         }
 

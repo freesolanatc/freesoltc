@@ -24,6 +24,10 @@ export interface ComposedTransaction {
   transaction: VersionedTransaction;
   label: string;
   extraSigners: Keypair[];
+  /** Same blockhash/expiry height shared by every transaction in a batch — needed to confirm
+   *  by blockhash expiry instead of an arbitrary fixed timeout. */
+  blockhash: string;
+  lastValidBlockHeight: number;
 }
 
 const GROUP_LABELS = ["Create Token", "Revoke Authorities"] as const;
@@ -39,7 +43,7 @@ export async function composeTransactions({
   instructionGroups,
   extraSigners = [],
 }: ComposeTransactionsParams): Promise<ComposedTransaction[]> {
-  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
   const composed: ComposedTransaction[] = [];
 
   let currentInstructions: TransactionInstruction[] = [];
@@ -60,7 +64,7 @@ export async function composeTransactions({
     }).compileToV0Message();
     const transaction = new VersionedTransaction(message);
     const label = GROUP_LABELS[composed.length] ?? `Transaction ${composed.length + 1}`;
-    composed.push({ transaction, label, extraSigners: [] });
+    composed.push({ transaction, label, extraSigners: [], blockhash, lastValidBlockHeight });
     currentInstructions = [];
   };
 

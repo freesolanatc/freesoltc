@@ -14,6 +14,7 @@ import {
   createRevokeMintAuthorityInstruction,
 } from "@/lib/solana/revokeAuthority";
 import { getExplorerUrl } from "@/lib/solana/explorer";
+import { confirmTransactionRobust } from "@/lib/solana/connection";
 import { claimOnChainTask } from "@/lib/points/claimPointsClient";
 import type { AuthorityKind } from "@/types/solana";
 
@@ -51,9 +52,12 @@ export function RevokeAuthorityCard({ authorityType }: { authorityType: Authorit
           ? createRevokeMintAuthorityInstruction(mint, publicKey)
           : createRevokeFreezeAuthorityInstruction(mint, publicKey);
 
-      const tx = new Transaction().add(instruction);
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      const tx = new Transaction({ feePayer: publicKey, blockhash, lastValidBlockHeight }).add(
+        instruction
+      );
       const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(signature, "confirmed");
+      await confirmTransactionRobust(connection, signature, blockhash, lastValidBlockHeight);
       setTxSignature(signature);
       lookup(mintAddress);
 
