@@ -27,8 +27,6 @@ const serverSchema = z.object({
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   PAYMENT_VERIFICATION_SECRET: z.string().min(16).optional(),
-  IRYS_NETWORK: z.enum(["mainnet", "devnet"]).default("mainnet"),
-  IRYS_PRIVATE_KEY: z.string().optional(),
   PINATA_JWT: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   CONTACT_RECEIVER_EMAIL: z.string().email().optional(),

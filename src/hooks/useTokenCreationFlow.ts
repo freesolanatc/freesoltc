@@ -66,10 +66,9 @@ export function useTokenCreationFlow() {
       }
 
       try {
-        // 1. Upload image + metadata to permanent storage, paid for by the connected wallet.
+        // 1. Upload image + metadata (Pinata, paid for by the site — no wallet approval needed).
         setState({ status: "uploading-metadata", error: null, result: null });
         const metadataUri = await uploadTokenMetadata({
-          walletAdapter: wallet.wallet?.adapter,
           image: values.image,
           name: values.name,
           symbol: values.symbol,

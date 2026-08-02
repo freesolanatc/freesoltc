@@ -1,13 +1,6 @@
-"use client";
-
-import { WebUploader } from "@irys/web-upload";
-import { WebSolana } from "@irys/web-upload-solana";
-import { siteConfig } from "@/lib/site-config";
 import type { SocialLinks } from "@/types/token";
 
 export interface UploadTokenMetadataParams {
-  /** A Solana wallet-adapter-compatible signer (publicKey + signMessage/signTransaction). */
-  walletAdapter: unknown;
   image: File;
   name: string;
   symbol: string;
@@ -16,67 +9,31 @@ export interface UploadTokenMetadataParams {
 }
 
 /**
- * Uploads the token image and off-chain metadata JSON to permanent Arweave storage via Irys,
- * paid for directly by the connected wallet (small SOL amount) — the site never custodies a
- * storage funding key server-side.
+ * Uploads the token image and off-chain metadata JSON to IPFS via Pinata, through our own API
+ * route. The site's Pinata account pays the (negligible, free-tier) storage cost, so this never
+ * needs a wallet approval or a per-user funding step — unlike paying a storage network (e.g.
+ * Irys/Arweave) directly from the connected wallet.
  */
 export async function uploadTokenMetadata({
-  walletAdapter,
   image,
   name,
   symbol,
   description,
   social,
 }: UploadTokenMetadataParams): Promise<string> {
-  const irysUploaderBuilder = WebUploader(WebSolana)
-    .withProvider(walletAdapter)
-    .withRpc(siteConfig.rpcUrl);
-  const irysUploader =
-    siteConfig.cluster === "mainnet-beta" ? irysUploaderBuilder.mainnet() : irysUploaderBuilder.devnet();
-  const irys = await irysUploader;
+  const form = new FormData();
+  form.append("image", image);
+  form.append("name", name);
+  form.append("symbol", symbol);
+  form.append("description", description);
+  form.append("social", JSON.stringify(social));
 
-  // Irys tracks a prepaid balance per wallet on its own node, separate from the wallet's SOL
-  // balance — uploads fail with "Not enough balance for transaction" until that node balance is
-  // topped up. We never funded it, so every upload past Irys's small free tier failed
-  // regardless of how much SOL the wallet actually held. Estimate the combined cost up front and
-  // top up (a real, wallet-approved SOL transfer to Irys) before uploading anything.
-  const properties: Record<string, string> = {};
-  if (social.website) properties.website = social.website;
-  if (social.twitter) properties.twitter = social.twitter;
-  if (social.telegram) properties.telegram = social.telegram;
-  if (social.discord) properties.discord = social.discord;
-
-  const metadataJsonForSizing = JSON.stringify({
-    name,
-    symbol,
-    description,
-    image: `https://gateway.irys.xyz/${"x".repeat(43)}`,
-    properties,
-  });
-  const estimatedTotalBytes = image.size + new TextEncoder().encode(metadataJsonForSizing).length;
-
-  const [price, balance] = await Promise.all([
-    irys.getPrice(estimatedTotalBytes),
-    irys.getBalance(),
-  ]);
-  if (balance.lt(price)) {
-    await irys.fund(price.minus(balance), 1.1);
+  const res = await fetch("/api/upload-metadata", { method: "POST", body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? "Failed to upload token image/metadata.");
   }
 
-  const imageReceipt = await irys.uploadFile(image);
-  const imageUri = `https://gateway.irys.xyz/${imageReceipt.id}`;
-
-  const metadataJson = {
-    name,
-    symbol,
-    description,
-    image: imageUri,
-    properties,
-  };
-
-  const metadataReceipt = await irys.upload(JSON.stringify(metadataJson), {
-    tags: [{ name: "Content-Type", value: "application/json" }],
-  });
-
-  return `https://gateway.irys.xyz/${metadataReceipt.id}`;
+  const data = (await res.json()) as { metadataUri: string };
+  return data.metadataUri;
 }

@@ -25,7 +25,6 @@ const ANALYTICS_CONNECT_HOSTS = [
 export function buildCspHeader(): string {
   const rpcHosts = getRpcHostnames().map((h) => `https://${h}`);
   const explorerHost = "https://explorer.solana.com";
-  const irysHosts = ["https://uploader.irys.xyz", "https://gateway.irys.xyz", "https://node1.irys.xyz", "https://devnet.irys.xyz"];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
@@ -36,7 +35,6 @@ export function buildCspHeader(): string {
     "connect-src": [
       "'self'",
       ...rpcHosts,
-      ...irysHosts,
       ...ANALYTICS_CONNECT_HOSTS,
       "https://*.solana.com",
     ],

@@ -3,8 +3,8 @@ import { BASE58_ALPHABET, VANITY_MAX_CHARS, VANITY_MIN_CHARS } from "@/types/van
 
 const base58Regex = new RegExp(`^[${BASE58_ALPHABET}]+$`);
 const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+export const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export const solanaAddressSchema = z
   .string()

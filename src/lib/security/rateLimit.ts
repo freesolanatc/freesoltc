@@ -46,6 +46,7 @@ const verifyPaymentLimiter = buildLimiter(5, 60);
 const contactLimiter = buildLimiter(3, 60);
 const pointsClaimLimiter = buildLimiter(10, 60);
 const referralRegisterLimiter = buildLimiter(5, 60);
+const uploadMetadataLimiter = buildLimiter(10, 60);
 
 export async function rateLimitVerifyPayment(identifier: string) {
   if (verifyPaymentLimiter) return verifyPaymentLimiter.limit(identifier);
@@ -65,6 +66,11 @@ export async function rateLimitPointsClaim(identifier: string) {
 export async function rateLimitReferralRegister(identifier: string) {
   if (referralRegisterLimiter) return referralRegisterLimiter.limit(identifier);
   return memoryStore.limit(`referral-register:${identifier}`, 5, 60_000);
+}
+
+export async function rateLimitUploadMetadata(identifier: string) {
+  if (uploadMetadataLimiter) return uploadMetadataLimiter.limit(identifier);
+  return memoryStore.limit(`upload-metadata:${identifier}`, 10, 60_000);
 }
 
 const PAYMENT_REPLAY_TTL_SECONDS = 20 * 60;
