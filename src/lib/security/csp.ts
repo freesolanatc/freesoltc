@@ -23,7 +23,16 @@ const ANALYTICS_CONNECT_HOSTS = [
  * HIT. Using a static allow-list instead keeps full-route caching working.
  */
 export function buildCspHeader(): string {
-  const rpcHosts = getRpcHostnames().map((h) => `https://${h}`);
+  const rpcHostnames = getRpcHostnames();
+  // Both schemes are needed: @solana/web3.js's Connection uses plain HTTPS for RPC calls but
+  // opens a WebSocket (wss://) to the same host for signature/account subscriptions (e.g. the
+  // confirmTransaction call every send goes through). Without the wss:// entry, the browser
+  // silently blocks that subscription per CSP, degrading confirmation to slow/unreliable HTTP
+  // polling with no visible error — just a stuck "confirming" state.
+  const rpcHosts = [
+    ...rpcHostnames.map((h) => `https://${h}`),
+    ...rpcHostnames.map((h) => `wss://${h}`),
+  ];
   const explorerHost = "https://explorer.solana.com";
 
   const directives: Record<string, string[]> = {
