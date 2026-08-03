@@ -151,10 +151,22 @@ export function useTokenCreationFlow() {
           // enough time on its own to expire a blockhash fetched earlier in the batch.
           const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
           step.transaction.message.recentBlockhash = blockhash;
+
+          // Wallet security scanners (e.g. Phantom's Blowfish integration) can't reliably
+          // simulate a transaction that already carries another signer's signature before
+          // the combined sign-and-send call, and flag it as a "Request blocked" risk. Per
+          // Phantom's own guidance for multi-signer transactions: have the wallet sign first
+          // via signTransaction, layer on any other required signers after, then broadcast
+          // the fully-signed transaction ourselves.
+          const signedTransaction = (await wallet.signTransaction!(
+            step.transaction
+          )) as typeof step.transaction;
           if (step.extraSigners.length > 0) {
-            step.transaction.sign(step.extraSigners);
+            signedTransaction.sign(step.extraSigners);
           }
-          const signature = await wallet.sendTransaction(step.transaction, connection);
+          const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+            maxRetries: 3,
+          });
           setState({ status: "confirming", error: null, result: null });
           await confirmTransactionRobust(connection, signature, blockhash, lastValidBlockHeight);
           signatures.push(signature);
