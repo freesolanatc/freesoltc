@@ -6,6 +6,7 @@ import { isAllowedOrigin } from "@/lib/security/origin";
 import { serverEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const PINATA_PIN_FILE_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 const PINATA_PIN_JSON_URL = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
@@ -25,14 +26,22 @@ const fieldsSchema = z.object({
     .default({}),
 });
 
+const PINATA_CALL_TIMEOUT_MS = 25_000;
+
 async function pinFile(file: File, jwt: string): Promise<string> {
   const form = new FormData();
   form.append("file", file, file.name);
-  const res = await fetch(PINATA_PIN_FILE_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${jwt}` },
-    body: form,
-  });
+  let res: Response;
+  try {
+    res = await fetch(PINATA_PIN_FILE_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}` },
+      body: form,
+      signal: AbortSignal.timeout(PINATA_CALL_TIMEOUT_MS),
+    });
+  } catch {
+    throw new Error("Image upload to storage timed out. Please try again.");
+  }
   if (!res.ok) {
     throw new Error(`Pinata file upload failed (${res.status}).`);
   }
@@ -41,14 +50,20 @@ async function pinFile(file: File, jwt: string): Promise<string> {
 }
 
 async function pinJson(json: unknown, jwt: string): Promise<string> {
-  const res = await fetch(PINATA_PIN_JSON_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ pinataContent: json }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(PINATA_PIN_JSON_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ pinataContent: json }),
+      signal: AbortSignal.timeout(PINATA_CALL_TIMEOUT_MS),
+    });
+  } catch {
+    throw new Error("Metadata upload to storage timed out. Please try again.");
+  }
   if (!res.ok) {
     throw new Error(`Pinata metadata upload failed (${res.status}).`);
   }

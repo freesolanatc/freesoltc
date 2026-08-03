@@ -28,7 +28,18 @@ export async function uploadTokenMetadata({
   form.append("description", description);
   form.append("social", JSON.stringify(social));
 
-  const res = await fetch("/api/upload-metadata", { method: "POST", body: form });
+  let res: Response;
+  try {
+    res = await fetch("/api/upload-metadata", {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(55_000),
+    });
+  } catch {
+    throw new Error(
+      "Upload timed out. Check your internet connection and try again."
+    );
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error ?? "Failed to upload token image/metadata.");
