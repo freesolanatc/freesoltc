@@ -96,8 +96,9 @@ export async function buildCreateTokenInstructions(
   );
 
   if (initialSupply > 0n) {
+    const rawAmount = initialSupply * 10n ** BigInt(decimals);
     createInstructions.push(
-      createMintToInstruction(mintAddress, associatedTokenAccount, payer, initialSupply)
+      createMintToInstruction(mintAddress, associatedTokenAccount, payer, rawAmount)
     );
   }
 

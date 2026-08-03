@@ -38,8 +38,7 @@ export const tokenFormSchema = z
       .string()
       .trim()
       .regex(/^[0-9]+$/, "Enter a whole number")
-      .refine((v) => BigInt(v) > 0n, "Supply must be greater than 0")
-      .refine((v) => BigInt(v) <= 18446744073709551615n, "Supply exceeds the maximum token supply"),
+      .refine((v) => BigInt(v) > 0n, "Supply must be greater than 0"),
     description: z.string().trim().max(500, "Max 500 characters").optional().default(""),
     image: z
       .instanceof(File)
@@ -64,6 +63,15 @@ export const tokenFormSchema = z
           message: result.error.issues[0]?.message ?? "Invalid vanity text",
         });
       }
+    }
+
+    const rawAmount = BigInt(data.initialSupply || "0") * 10n ** BigInt(data.decimals);
+    if (rawAmount > 18446744073709551615n) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["initialSupply"],
+        message: "Supply is too large for the selected decimals.",
+      });
     }
   });
 
