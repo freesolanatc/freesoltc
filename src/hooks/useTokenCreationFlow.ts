@@ -146,12 +146,17 @@ export function useTokenCreationFlow() {
         setState({ status: "awaiting-signature", error: null, result: null });
         const signatures: string[] = [];
         for (const step of composed) {
+          // Refresh the blockhash right before this step's wallet approval, since a prior
+          // step's approval (especially with extra wallet security-warning screens) can eat
+          // enough time on its own to expire a blockhash fetched earlier in the batch.
+          const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+          step.transaction.message.recentBlockhash = blockhash;
           if (step.extraSigners.length > 0) {
             step.transaction.sign(step.extraSigners);
           }
           const signature = await wallet.sendTransaction(step.transaction, connection);
           setState({ status: "confirming", error: null, result: null });
-          await confirmTransactionRobust(connection, signature, step.blockhash, step.lastValidBlockHeight);
+          await confirmTransactionRobust(connection, signature, blockhash, lastValidBlockHeight);
           signatures.push(signature);
         }
 
