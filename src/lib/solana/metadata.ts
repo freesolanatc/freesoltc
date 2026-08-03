@@ -33,7 +33,7 @@ export async function uploadTokenMetadata({
     res = await fetch("/api/upload-metadata", {
       method: "POST",
       body: form,
-      signal: AbortSignal.timeout(55_000),
+      signal: AbortSignal.timeout(115_000),
     });
   } catch {
     throw new Error(

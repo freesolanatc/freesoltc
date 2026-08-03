@@ -6,7 +6,7 @@ import { isAllowedOrigin } from "@/lib/security/origin";
 import { serverEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const PINATA_PIN_FILE_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 const PINATA_PIN_JSON_URL = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
@@ -26,7 +26,8 @@ const fieldsSchema = z.object({
     .default({}),
 });
 
-const PINATA_CALL_TIMEOUT_MS = 25_000;
+const PINATA_FILE_TIMEOUT_MS = 60_000;
+const PINATA_JSON_TIMEOUT_MS = 30_000;
 
 async function pinFile(file: File, jwt: string): Promise<string> {
   const form = new FormData();
@@ -37,7 +38,7 @@ async function pinFile(file: File, jwt: string): Promise<string> {
       method: "POST",
       headers: { Authorization: `Bearer ${jwt}` },
       body: form,
-      signal: AbortSignal.timeout(PINATA_CALL_TIMEOUT_MS),
+      signal: AbortSignal.timeout(PINATA_FILE_TIMEOUT_MS),
     });
   } catch {
     throw new Error("Image upload to storage timed out. Please try again.");
@@ -59,7 +60,7 @@ async function pinJson(json: unknown, jwt: string): Promise<string> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ pinataContent: json }),
-      signal: AbortSignal.timeout(PINATA_CALL_TIMEOUT_MS),
+      signal: AbortSignal.timeout(PINATA_JSON_TIMEOUT_MS),
     });
   } catch {
     throw new Error("Metadata upload to storage timed out. Please try again.");
