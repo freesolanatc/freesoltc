@@ -111,13 +111,13 @@ export function useTokenCreationFlow() {
           if (cancelRequestedRef.current) return;
 
           setState({ status: "searching-vanity", error: null, result: null });
-          vanityPool.start(values.vanityMode, values.vanityText);
-          const found = await waitForVanityResult(vanityPool);
+          const found = await vanityPool.start(values.vanityMode, values.vanityText);
           if (cancelRequestedRef.current) return;
-          if (!found) {
+          const secretKey = found ? vanityPool.takeResultSecretKey() : null;
+          if (!secretKey) {
             throw new Error("Vanity address search was canceled or failed.");
           }
-          mintKeypair = Keypair.fromSecretKey(found);
+          mintKeypair = Keypair.fromSecretKey(secretKey);
         }
 
         // 3. Build instructions and batch into as few transactions as possible.
@@ -213,22 +213,6 @@ export function useTokenCreationFlow() {
     cancel,
     reset,
   };
-}
-
-function waitForVanityResult(
-  pool: ReturnType<typeof useVanityWorkerPool>
-): Promise<Uint8Array | null> {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      if (pool.state.status === "found") {
-        clearInterval(interval);
-        resolve(pool.takeResultSecretKey());
-      } else if (pool.state.status === "error" || pool.state.status === "canceled") {
-        clearInterval(interval);
-        resolve(null);
-      }
-    }, 150);
-  });
 }
 
 export function buildFlowSteps(status: FlowStatus, hasVanity: boolean): TransactionStep[] {
