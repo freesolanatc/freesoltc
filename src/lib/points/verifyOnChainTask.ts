@@ -60,7 +60,9 @@ export async function verifyOnChainTask(params: {
   }
 
   if (task === "revoke_mint_authority" || task === "revoke_freeze_authority") {
-    const expectedAuthorityType = task === "revoke_mint_authority" ? "MintTokens" : "FreezeAccount";
+    // Solana's RPC parses AuthorityType enum variants in camelCase (e.g. "mintTokens", not
+    // the Rust-style "MintTokens"), confirmed directly against live transaction data.
+    const expectedAuthorityType = task === "revoke_mint_authority" ? "mintTokens" : "freezeAccount";
     const found = instructions.some((ix) => {
       if (!("parsed" in ix) || ix.program !== "spl-token") return false;
       const parsed = ix.parsed as { type?: string; info?: Record<string, unknown> };
