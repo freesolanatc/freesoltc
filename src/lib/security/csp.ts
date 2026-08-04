@@ -46,6 +46,13 @@ export function buildCspHeader(): string {
       ...rpcHosts,
       ...ANALYTICS_CONNECT_HOSTS,
       "https://*.solana.com",
+      // Solana Mobile Wallet Adapter (used automatically on Android mobile browsers) opens a
+      // loopback WebSocket back to the wallet app on the same device, on a session-specific
+      // port, to deliver the actual connect/sign request after the wallet app is opened via
+      // deep link. Without this, the wallet app opens (that's an OS intent, not subject to CSP)
+      // but the browser silently blocks the handshake that carries the request itself — the
+      // wallet has nothing to show and the connect flow just goes nowhere.
+      "ws://localhost:*",
     ],
     "frame-src": ["'self'", explorerHost],
     "frame-ancestors": ["'none'"],
