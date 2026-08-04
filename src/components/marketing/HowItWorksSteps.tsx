@@ -12,7 +12,7 @@ const steps = [
   {
     step: "3",
     title: "Choose your options",
-    description: "Optionally revoke mint authority, revoke freeze authority, or claim a custom vanity address &mdash; all free except the vanity address.",
+    description: "Optionally revoke mint authority, revoke freeze authority, or claim a custom contract address &mdash; all free except the custom contract address.",
   },
   {
     step: "4",

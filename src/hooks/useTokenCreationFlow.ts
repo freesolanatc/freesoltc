@@ -116,7 +116,7 @@ export function useTokenCreationFlow() {
           if (cancelRequestedRef.current) return;
           const secretKey = found ? vanityPool.takeResultSecretKey() : null;
           if (!secretKey) {
-            throw new Error("Vanity address search was canceled or failed.");
+            throw new Error("Contract address search was canceled or failed.");
           }
           mintKeypair = Keypair.fromSecretKey(secretKey);
         }
@@ -228,7 +228,7 @@ export function buildFlowSteps(status: FlowStatus, hasVanity: boolean): Transact
     { label: "Upload token image & metadata", status: "pending" },
   ];
   if (hasVanity) {
-    steps.push({ label: "Pay vanity address fee", status: "pending" });
+    steps.push({ label: "Pay contract address fee", status: "pending" });
     steps.push({ label: "Search for matching address", status: "pending" });
   }
   steps.push({ label: "Create token", status: "pending" });

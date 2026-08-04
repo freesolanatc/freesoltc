@@ -15,7 +15,7 @@ export function HeroSection() {
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground">
           Create SPL Tokens for free in minutes. No platform fee. Only Solana network fee.
-          Optionally revoke mint and freeze authority for free, or claim a custom vanity
+          Optionally revoke mint and freeze authority for free, or claim a custom contract
           address.
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">

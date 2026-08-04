@@ -60,7 +60,7 @@ export const tokenFormSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["vanityText"],
-          message: result.error.issues[0]?.message ?? "Invalid vanity text",
+          message: result.error.issues[0]?.message ?? "Invalid contract address text",
         });
       }
     }

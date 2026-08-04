@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   const isFirstClaim = await claimPaymentSignature(signature);
   if (!isFirstClaim) {
     return NextResponse.json(
-      { error: "This payment has already been used to unlock a vanity address search." },
+      { error: "This payment has already been used to unlock a custom contract address search." },
       { status: 409 }
     );
   }

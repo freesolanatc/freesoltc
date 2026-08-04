@@ -117,7 +117,7 @@ export function useVanityWorkerPool() {
             setState((prev) => ({
               ...prev,
               status: "error",
-              error: "Vanity address search failed. Please try again.",
+              error: "Contract address search failed. Please try again.",
             }));
             resolveOnce(false);
           };

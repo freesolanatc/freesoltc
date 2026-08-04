@@ -4,7 +4,7 @@ export const siteConfig = {
   name: clientEnv.NEXT_PUBLIC_SITE_NAME,
   title: "Create Solana Token Free | Free Solana Token Creator",
   description:
-    "Create Solana SPL tokens for free in minutes. No platform fee — only the Solana network fee. Optionally revoke mint and freeze authority for free, or claim a custom vanity address.",
+    "Create Solana SPL tokens for free in minutes. No platform fee — only the Solana network fee. Optionally revoke mint and freeze authority for free, or claim a custom contract address.",
   url: clientEnv.NEXT_PUBLIC_SITE_URL,
   twitterHandle: clientEnv.NEXT_PUBLIC_TWITTER_HANDLE ?? "@freesolanatoken",
   locale: "en_US",

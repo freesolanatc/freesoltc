@@ -13,7 +13,7 @@ const features = [
   { icon: Coins, title: "Free Token Creation", description: "Launch a fully compliant SPL token. Only the Solana network fee applies." },
   { icon: Flame, title: "Free Mint Authority Removal", description: "Revoke mint authority at no extra cost, right after creation or any time later." },
   { icon: Lock, title: "Free Freeze Authority Removal", description: "Revoke freeze authority for free to build holder trust and transparency." },
-  { icon: Sparkles, title: "Optional Custom Address", description: "Claim a vanity prefix or suffix for your token's contract address for 0.1 SOL." },
+  { icon: Sparkles, title: "Optional Custom Address", description: "Claim a custom prefix or suffix for your token's contract address for 0.1 SOL." },
   { icon: Wallet, title: "Secure Wallet Integration", description: "Connect with Phantom, Solflare, Backpack, Glow, or any Wallet Standard wallet." },
   { icon: Zap, title: "Fast Transactions", description: "Optimized instruction batching means fewer wallet prompts and faster confirmations." },
   { icon: ShieldCheck, title: "Non-Custodial & Secure", description: "We never hold your private keys. Every transaction is signed by you, in your wallet." },

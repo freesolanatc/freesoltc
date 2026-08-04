@@ -7,7 +7,7 @@ import { siteConfig } from "@/lib/site-config";
 export const metadata: Metadata = buildMetadata({
   title: "FAQ — Free Solana Token Creator",
   description:
-    "Answers to common questions about creating Solana tokens for free, revoking mint and freeze authority, and claiming a custom vanity token address.",
+    "Answers to common questions about creating Solana tokens for free, revoking mint and freeze authority, and claiming a custom contract address.",
   path: "/faq",
 });
 
@@ -22,7 +22,7 @@ const groups: { title: string; items: { question: string; answer: string }[] }[]
       },
       {
         question: "What is the only paid feature?",
-        answer: `Claim Custom Address is the one paid feature on the site: a flat ${siteConfig.vanityFeeSol} SOL fee to generate a vanity token address with a custom prefix or suffix you choose. Everything else is free.`,
+        answer: `Claim Custom Address is the one paid feature on the site: a flat ${siteConfig.vanityFeeSol} SOL fee to generate a contract address with a custom prefix or suffix you choose. Everything else is free.`,
       },
       {
         question: "Are there hidden fees?",
@@ -40,9 +40,9 @@ const groups: { title: string; items: { question: string; answer: string }[] }[]
           "Never. All transactions are built client-side and signed by your connected wallet. We have no mechanism to access, store, or transmit your private keys.",
       },
       {
-        question: "How does the vanity address feature stay secure?",
+        question: "How does the custom contract address feature stay secure?",
         answer:
-          "Vanity keypairs are generated entirely inside your browser using Web Workers. The winning keypair is held in memory only long enough to build your token creation transaction, then discarded — it is never sent to our servers or logged anywhere.",
+          "Contract address keypairs are generated entirely inside your browser using Web Workers. The winning keypair is held in memory only long enough to build your token creation transaction, then discarded — it is never sent to our servers or logged anywhere.",
       },
       {
         question: "Which wallets are supported?",

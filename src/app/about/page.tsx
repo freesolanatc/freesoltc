@@ -36,7 +36,7 @@ const values = [
     icon: ShieldCheck,
     title: "Security-first engineering",
     description:
-      "From client-side vanity address generation to strict input validation and on-chain ownership checks, security shapes every decision we make.",
+      "From client-side custom contract address generation to strict input validation and on-chain ownership checks, security shapes every decision we make.",
   },
 ];
 

@@ -42,7 +42,7 @@ export default function PrivacyPolicyPage() {
           involvement.
         </p>
 
-        <h2>3. Vanity address generation</h2>
+        <h2>3. Custom contract address generation</h2>
         <p>
           When you use the optional Claim Custom Address feature, candidate keypairs are
           generated entirely within your browser. Generated private keys are never transmitted

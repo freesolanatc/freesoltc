@@ -9,12 +9,12 @@ const points = [
   {
     icon: Eye,
     title: "Fully transparent transactions",
-    description: "Before you sign, you always see exactly what you're approving — token creation, an authority revocation, or the vanity address fee — never bundled or hidden.",
+    description: "Before you sign, you always see exactly what you're approving — token creation, an authority revocation, or the contract address fee — never bundled or hidden.",
   },
   {
     icon: ShieldCheck,
     title: "No custody, ever",
-    description: "Vanity addresses are generated entirely in your browser. The generated key is used once to build your transaction, then discarded — it is never sent to our servers.",
+    description: "Custom contract addresses are generated entirely in your browser. The generated key is used once to build your transaction, then discarded — it is never sent to our servers.",
   },
 ];
 

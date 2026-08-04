@@ -9,7 +9,7 @@ import { siteConfig } from "@/lib/site-config";
 export const metadata: Metadata = buildMetadata({
   title: "Create Solana Token Free — SPL Token Creator",
   description:
-    "Create a Solana SPL token for free in minutes. No platform fee. Optionally revoke mint and freeze authority for free, or claim a custom vanity contract address.",
+    "Create a Solana SPL token for free in minutes. No platform fee. Optionally revoke mint and freeze authority for free, or claim a custom contract address.",
   path: "/create-token",
 });
 
@@ -22,12 +22,12 @@ const faqs = [
   {
     question: "What is the Claim Custom Address feature?",
     answer:
-      `Claim Custom Address is our only paid feature. For a flat ${siteConfig.vanityFeeSol} SOL fee, we generate a vanity keypair whose public key starts or ends with up to 4 characters you choose, entirely in your browser.`,
+      `Claim Custom Address is our only paid feature. For a flat ${siteConfig.vanityFeeSol} SOL fee, we generate a contract keypair whose public key starts or ends with up to 4 characters you choose, entirely in your browser.`,
   },
   {
     question: "Do you ever have access to my private keys?",
     answer:
-      "No. All signing happens in your connected wallet. Vanity addresses are generated client-side in your browser and are never transmitted to our servers.",
+      "No. All signing happens in your connected wallet. Custom contract addresses are generated client-side in your browser and are never transmitted to our servers.",
   },
 ];
 
