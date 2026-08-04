@@ -6,7 +6,7 @@ export function organizationSchema() {
     "@type": "Organization",
     name: siteConfig.name,
     url: siteConfig.url,
-    logo: new URL("/images/logo.svg", siteConfig.url).toString(),
+    logo: new URL("/images/logo.png", siteConfig.url).toString(),
     sameAs: [siteConfig.links.twitter],
   };
 }
@@ -65,7 +65,7 @@ export function articleSchema(params: {
       name: siteConfig.name,
       logo: {
         "@type": "ImageObject",
-        url: new URL("/images/logo.svg", siteConfig.url).toString(),
+        url: new URL("/images/logo.png", siteConfig.url).toString(),
       },
     },
     image: params.image ? new URL(params.image, siteConfig.url).toString() : undefined,

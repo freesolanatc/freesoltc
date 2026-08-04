@@ -1,4 +1,5 @@
 import { siteConfig } from "@/lib/site-config";
+import { OG_LOGO_DATA_URI } from "@/lib/seo/ogLogoDataUri";
 
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 
@@ -30,22 +31,8 @@ export function renderOgImage(title: string, subtitle?: string) {
           color: "#a1a1aa",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            width: 44,
-            height: 44,
-            borderRadius: 999,
-            background: "#ab9ff2",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 22,
-            fontWeight: 800,
-            color: "#0a0a0a",
-          }}
-        >
-          S
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={OG_LOGO_DATA_URI} width={44} height={44} alt="" />
         {siteConfig.name}
       </div>
       <div style={{ display: "flex", fontSize: 56, fontWeight: 800, maxWidth: 900 }}>{title}</div>
