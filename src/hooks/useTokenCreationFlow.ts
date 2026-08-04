@@ -9,10 +9,11 @@ import { uploadTokenMetadata } from "@/lib/solana/metadata";
 import { buildVanityFeeTransferParams } from "@/lib/payment/verifyVanityPayment";
 import { getExplorerUrl } from "@/lib/solana/explorer";
 import { confirmTransactionRobust } from "@/lib/solana/connection";
-import { claimOnChainTask } from "@/lib/points/claimPointsClient";
+import { claimOnChainTasksBatch } from "@/lib/points/claimPointsClient";
 import { useVanityWorkerPool } from "@/hooks/useVanityWorkerPool";
 import type { TokenFormValues, TokenCreationResult } from "@/types/token";
 import type { TransactionStep } from "@/types/solana";
+import type { TaskType } from "@/lib/points/tasks";
 
 export type FlowStatus =
   | "idle"
@@ -183,16 +184,23 @@ export function useTokenCreationFlow() {
         });
 
         // Airdrop points: fire-and-forget, never blocks or affects the create-token result.
-        void claimOnChainTask(wallet, "create_token", signatures);
+        // Batched into one wallet signature instead of one signMessage prompt per task.
+        const pointClaims: { task: TaskType; candidateSignatures: string[] }[] = [
+          { task: "create_token", candidateSignatures: signatures },
+        ];
         if (values.revokeMintAuthority) {
-          void claimOnChainTask(wallet, "revoke_mint_authority", signatures);
+          pointClaims.push({ task: "revoke_mint_authority", candidateSignatures: signatures });
         }
         if (values.revokeFreezeAuthority) {
-          void claimOnChainTask(wallet, "revoke_freeze_authority", signatures);
+          pointClaims.push({ task: "revoke_freeze_authority", candidateSignatures: signatures });
         }
         if (values.claimCustomAddress && vanityPaymentSignatureRef.current) {
-          void claimOnChainTask(wallet, "claim_vanity_address", [vanityPaymentSignatureRef.current]);
+          pointClaims.push({
+            task: "claim_vanity_address",
+            candidateSignatures: [vanityPaymentSignatureRef.current],
+          });
         }
+        void claimOnChainTasksBatch(wallet, pointClaims);
       } catch (err) {
         setState({
           status: "error",

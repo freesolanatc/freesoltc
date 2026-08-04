@@ -10,6 +10,15 @@ export function buildClaimMessage(params: { task: TaskType; wallet: string }): s
   return `${siteConfig.name}: claim "${params.task}" points for wallet ${params.wallet}`;
 }
 
+/** One signature covering several tasks at once (e.g. create + both revokes + vanity claim
+ *  all finishing in the same flow), so the wallet only prompts once instead of once per task.
+ *  Tasks are sorted so client and server always build the identical message regardless of the
+ *  order the caller happened to list them in. */
+export function buildBatchClaimMessage(params: { tasks: TaskType[]; wallet: string }): string {
+  const sortedTasks = [...params.tasks].sort();
+  return `${siteConfig.name}: claim points for wallet ${params.wallet} for tasks [${sortedTasks.join(",")}]`;
+}
+
 export function verifyWalletSignature(params: {
   walletAddress: string;
   message: string;

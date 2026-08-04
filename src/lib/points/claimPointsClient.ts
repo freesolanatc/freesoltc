@@ -2,6 +2,7 @@ import bs58 from "bs58";
 import type { PublicKey } from "@solana/web3.js";
 import { toast } from "sonner";
 import type { TaskType } from "@/lib/points/tasks";
+import { buildBatchClaimMessage } from "@/lib/security/walletSignature";
 
 interface SigningWallet {
   publicKey: PublicKey | null;
@@ -56,6 +57,45 @@ export async function claimOnChainTask(
     } catch {
       // try the next candidate signature
     }
+  }
+}
+
+/** One or more on-chain tasks finishing in the same flow (e.g. create + revoke mint + revoke
+ *  freeze + vanity claim all completing together) are claimed with a single wallet signature
+ *  instead of one signMessage prompt per task. Fire-and-forget, same as claimOnChainTask. */
+export async function claimOnChainTasksBatch(
+  wallet: SigningWallet,
+  claims: { task: TaskType; candidateSignatures: string[] }[]
+): Promise<void> {
+  if (!wallet.publicKey || !wallet.signMessage || claims.length === 0) return;
+  const walletAddress = wallet.publicKey.toBase58();
+
+  try {
+    const message = buildBatchClaimMessage({ tasks: claims.map((c) => c.task), wallet: walletAddress });
+    const signed = await wallet.signMessage(new TextEncoder().encode(message));
+    const signature = bs58.encode(signed);
+
+    const res = await fetch("/api/points/claim-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        wallet: walletAddress,
+        signature,
+        tasks: claims.map((c) => ({ task: c.task, candidateSignatures: c.candidateSignatures })),
+      }),
+    });
+    if (!res.ok) return;
+
+    const data = (await res.json()) as {
+      results: { claimed: boolean; task: TaskType; pointsAwarded?: number }[];
+    };
+    for (const result of data.results) {
+      if (result.claimed && result.pointsAwarded) {
+        toast.success(`+${result.pointsAwarded} airdrop points — ${TASK_LABELS[result.task]}`);
+      }
+    }
+  } catch {
+    // best-effort; ignore
   }
 }
 
