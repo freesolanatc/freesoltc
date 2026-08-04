@@ -228,7 +228,7 @@ export function buildFlowSteps(status: FlowStatus, hasVanity: boolean): Transact
     { label: "Upload token image & metadata", status: "pending" },
   ];
   if (hasVanity) {
-    steps.push({ label: "Pay contract address fee", status: "pending" });
+    steps.push({ label: "Pay custom contract address fee", status: "pending" });
     steps.push({ label: "Search for matching address", status: "pending" });
   }
   steps.push({ label: "Create token", status: "pending" });
