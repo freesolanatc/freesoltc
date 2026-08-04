@@ -201,6 +201,7 @@ export function TokenForm() {
         status={flow.status}
         error={flow.error}
         hasVanity={values.claimCustomAddress}
+        vanityCharCount={values.vanityText.length}
         vanitySearchState={flow.vanitySearchState}
         onCancel={flow.cancel}
         onClose={flow.reset}

@@ -23,6 +23,17 @@ function buildPreview(mode: "prefix" | "suffix", text: string): string {
   return mode === "prefix" ? `${text}${filler}` : `${filler}${text}`;
 }
 
+// Qualitative, not a promise: search speed depends entirely on the user's own device (CPU
+// core count and speed) since generation happens client-side. Each extra character multiplies
+// the search space by ~58x, so the jump from 3 to 4 characters is the one most worth flagging
+// up front — before payment, not after — since users won't sit through a surprise wait.
+const TIME_EXPECTATION_BY_LENGTH: Record<number, string> = {
+  1: "Usually instant.",
+  2: "Usually a few seconds.",
+  3: "Often under a minute, sometimes a few minutes on slower devices.",
+  4: "Can take several minutes — occasionally longer on slower or older devices. Each extra character multiplies the search space by about 58x.",
+};
+
 export function VanityAddressPanel({ control, errors, vanityMode, vanityText }: VanityAddressPanelProps) {
   const preview = buildPreview(vanityMode, vanityText || "xxxx");
 
@@ -97,6 +108,11 @@ export function VanityAddressPanel({ control, errors, vanityMode, vanityText }: 
           Base58 characters only (no 0, O, I, or l). 1&ndash;4 characters. Longer strings take
           exponentially longer to find.
         </p>
+        {vanityText.length > 0 && (
+          <p className="mt-1 text-xs font-medium text-primary">
+            Estimated search time: {TIME_EXPECTATION_BY_LENGTH[vanityText.length]}
+          </p>
+        )}
         {errors.vanityText && (
           <p className="mt-1 text-sm text-destructive">{errors.vanityText.message}</p>
         )}

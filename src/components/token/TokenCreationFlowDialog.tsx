@@ -19,6 +19,7 @@ interface TokenCreationFlowDialogProps {
   status: FlowStatus;
   error: string | null;
   hasVanity: boolean;
+  vanityCharCount: number;
   vanitySearchState: VanitySearchState;
   onCancel: () => void;
   onClose: () => void;
@@ -29,6 +30,7 @@ export function TokenCreationFlowDialog({
   status,
   error,
   hasVanity,
+  vanityCharCount,
   vanitySearchState,
   onCancel,
   onClose,
@@ -49,7 +51,11 @@ export function TokenCreationFlowDialog({
         <TransactionStatusStepper steps={steps} />
 
         {status === "searching-vanity" && (
-          <VanitySearchProgress state={vanitySearchState} onCancel={onCancel} />
+          <VanitySearchProgress
+            state={vanitySearchState}
+            charCount={vanityCharCount}
+            onCancel={onCancel}
+          />
         )}
 
         {status === "error" && error && (

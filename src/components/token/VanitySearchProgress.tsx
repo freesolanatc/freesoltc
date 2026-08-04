@@ -16,15 +16,39 @@ const STATUS_LABELS: Record<VanitySearchState["status"], string> = {
 
 interface VanitySearchProgressProps {
   state: VanitySearchState;
+  charCount: number;
   onCancel: () => void;
   cancelDisabled?: boolean;
 }
 
-export function VanitySearchProgress({ state, onCancel, cancelDisabled }: VanitySearchProgressProps) {
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `~${Math.max(1, Math.round(seconds))}s`;
+  const minutes = seconds / 60;
+  if (minutes < 60) return `~${minutes < 10 ? minutes.toFixed(1) : Math.round(minutes)}min`;
+  return `~${(minutes / 60).toFixed(1)}h`;
+}
+
+/**
+ * Random search on a memoryless space (each attempt has the same odds regardless of how many
+ * came before), so "time remaining" would be misleading — the number that's actually honest and
+ * useful is the average total time implied by this device's own observed speed so far, letting
+ * the user judge whether their machine is fast enough to be worth waiting on.
+ */
+function estimateAverageSeconds(charCount: number, attempts: number, elapsedMs: number): number | null {
+  if (attempts < 500 || elapsedMs < 1000) return null; // not enough samples yet
+  const attemptsPerSecond = attempts / (elapsedMs / 1000);
+  const searchSpace = 58 ** charCount;
+  return searchSpace / attemptsPerSecond;
+}
+
+export function VanitySearchProgress({ state, charCount, onCancel, cancelDisabled }: VanitySearchProgressProps) {
   const isActive =
     state.status === "awaiting-payment" ||
     state.status === "verifying-payment" ||
     state.status === "searching";
+
+  const estimatedAverageSeconds =
+    state.status === "searching" ? estimateAverageSeconds(charCount, state.attempts, state.elapsedMs) : null;
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
@@ -38,6 +62,13 @@ export function VanitySearchProgress({ state, onCancel, cancelDisabled }: Vanity
         <div className="text-xs text-muted-foreground">
           {state.attempts.toLocaleString()} addresses checked &middot;{" "}
           {(state.elapsedMs / 1000).toFixed(1)}s elapsed
+          {estimatedAverageSeconds !== null && (
+            <>
+              {" "}
+              &middot; at this device&apos;s current speed, average expected time is{" "}
+              {formatDuration(estimatedAverageSeconds)}
+            </>
+          )}
         </div>
       )}
 

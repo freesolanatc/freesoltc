@@ -8,7 +8,10 @@ import type {
   VanityWorkerStartMessage,
 } from "@/types/vanity";
 
-const MAX_WORKERS = 8;
+// Pure CPU-bound work (ed25519 keypair generation), so more workers than physical cores
+// doesn't help — this just raises the ceiling for higher-core devices; Math.min against
+// hardwareConcurrency below still keeps weaker devices from over-subscribing.
+const MAX_WORKERS = 16;
 
 function getWorkerCount(): number {
   if (typeof navigator === "undefined") return 4;
